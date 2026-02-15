@@ -1,0 +1,34 @@
+stateDiagram-v2
+    [*] --> S0
+    S0 --> S1_init : PD1
+    
+    S1_init --> S2_val : PD2
+    S1_init --> S5 : PD8a
+    
+    S2_val --> S1_init : PD2b (advance)
+    S2_val --> S3_bup : PD4 (leaf)
+    S2_val --> S1_ref : PD2a (refine)
+    S2_val --> S5 : PD2a (error)
+    
+    S1_ref --> S2_ref : PD3
+    S1_ref --> S5 : PD8b
+    
+    S2_ref --> S3_res : PD3-res
+    S2_ref --> S1_ref : PD3c (retry)
+    S2_ref --> S5 : PD3c (error)
+    
+    S3_res --> S1_ref : PD3a (deeper)
+    S3_res --> S2_val : PD3b (return)
+    
+    S3_bup --> S3_bup : PD4a (climb)
+    S3_bup --> S4_tdown : PD5 (pivot)
+    S3_bup --> S1_ref : PD4b (refine)
+    S3_bup --> S5 : PD4b (error)
+    
+    S4_tdown --> S4_tdown : PD6 (descend)
+    S4_tdown --> T : PD7 (success)
+    S4_tdown --> S1_ref : PD6a (refine)
+    S4_tdown --> S5 : PD6a/b (error)
+    
+    S5 --> [*] : Error
+    T --> [*] : Success
