@@ -1,57 +1,58 @@
 stateDiagram-v2
     [*] --> S0
-    
-    %% PD1: Initialization
-    S0 --> S1_init : PD1 (process_level!L1)
 
-    %% Forward Path
-    S1_init --> S2_val : PD2 (process!i; validate!i)
-    S1_init --> S5 : PD8a (exhausted?i)
+    %% Initialization
+    S0 --> S1_init : PD1 (process_level!root)
 
-    %% S2 Branching
-    S2_val --> S1_init_next : PD2b (met & has_children)
-    S2_val --> S3_bup : PD4 (met & no_children)
+    %% Forward Processing
+    S1_init --> S2_val : PD2 (process!i, validate!i)
+    S1_init --> S5 : PD8a (refinement_exhausted?i)
+
+    %% Primary Validation
+    S2_val --> S1_init_next : PD2b (threshold_met & has_children)
+    S2_val --> S3_bup : PD4 (threshold_met & no_children)
     S2_val --> S5 : PD2a-1 (not_met & no_trace)
     S2_val --> S1_ref : PD2a-2 (not_met & refine_avail)
     S2_val --> S5 : PD2a-3 (not_met & exhausted)
 
-    %% Refinement Entry
-    S1_ref --> S2_ref : PD3 (process!j; validate!j)
-    S1_ref --> S5 : PD8b (exhausted?j)
+    %% Refinement Processing
+    S1_ref --> S2_ref : PD3 (process!j, validate!j)
+    S1_ref --> S5 : PD8b (refinement_exhausted?j)
 
     %% Refinement Validation
-    S2_ref --> S3_res : PD3-res (met?j / trace_origin!)
+    S2_ref --> S3_res : PD3-res (threshold_met?j)
     S2_ref --> S5 : PD3c-1 (not_met & exhausted)
     S2_ref --> S1_ref_new : PD3c-2 (not_met & refine_avail)
 
-    %% Resolution Choice
+    %% Refinement Resolution
     S3_res --> S1_ref_next : PD3a (j_lt_i)
     S3_res --> S2_val_orig : PD3b (j_eq_i)
 
-    %% Bottom-Up
-    S3_bup --> S3_bup_prev : PD4a (all_val & i≠L1)
-    S3_bup --> S4_tdown : PD5 (all_val at L1)
+    %% Bottom-Up Completion (generic)
+    S3_bup --> S3_bup_prev : PD4a (all_val & not_root(i))
+    S3_bup --> S4_tdown : PD5 (all_val & is_root(i))
     S3_bup --> S5 : PD4b-1 (not_all_val & no_trace)
     S3_bup --> S1_ref : PD4b-2 (not_all_val & refine_avail)
     S3_bup --> S5 : PD4b-3 (not_all_val & exhausted)
 
-    %% Top-Down
-    S4_tdown --> S4_tdown_next : PD6 (all_val & i≠L5)
-    S4_tdown --> T : PD7 (all_val at L5)
+    %% Top-Down Completion (generic)
+    S4_tdown --> S4_tdown_next : PD6 (all_val & not_leaf(i))
+    S4_tdown --> T : PD7 (all_val & is_leaf(i))
     S4_tdown --> S1_ref : PD6a-1 (not_all_val & trace & avail)
     S4_tdown --> S5 : PD6a-2 (not_all_val & trace & exhausted)
     S4_tdown --> S5 : PD6b (not_all_val & no_trace)
 
-    S5 --> [*] : Error Terminal
-    T --> [*] : Success Terminal
+    %% Terminal
+    S5 --> [*]
+    T --> [*]
 
-    %% Labels for Context
-    state "S0 (Initialization)" as S0
+    %% Labels
+    state "S0" as S0
     state "S1_init(i)" as S1_init
-    state "S1_ref(j, i)" as S1_ref
+    state "S1_ref(j,i)" as S1_ref
     state "S2_val(i)" as S2_val
-    state "S2_ref(j, i)" as S2_ref
-    state "S3_res(j, i)" as S3_res
+    state "S2_ref(j,i)" as S2_ref
+    state "S3_res(j,i)" as S3_res
     state "S3_bup(i)" as S3_bup
     state "S4_tdown(i)" as S4_tdown
     state "S5" as S5
