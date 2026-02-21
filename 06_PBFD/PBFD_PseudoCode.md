@@ -76,7 +76,7 @@ MAIN PBFD PROCEDURE
 06          case currentState of
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S1_init(i) – Forward Pattern Processing
+            -- Table 40: S1_init(i) – Forward Pattern Processing
             -- ─────────────────────────────────────────────────────────
 07          S1_InitialProcess(i):
 08              Process Patternᵢ                            -- CSP: process_pattern_actual!i
@@ -93,7 +93,7 @@ MAIN PBFD PROCEDURE
 13              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S2_val(i) – Primary Pattern Validation
+            -- Table 40: S2_val(i) – Primary Pattern Validation
             -- ─────────────────────────────────────────────────────────
 14          S2_ValidationInitial(i):
 15              Validate Patternᵢ                            -- CSP: validate_pattern_actual!i
@@ -113,7 +113,7 @@ MAIN PBFD PROCEDURE
 20              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S1_ref(j,i) – Refinement Pattern Processing
+            -- Table 40: S1_ref(j,i) – Refinement Pattern Processing
             -- ─────────────────────────────────────────────────────────
 21          S1_RefinementProcess(j, i_orig):
                 -- Table A.7.1, Rule PB9: S1_ref(j,i) → S5
@@ -136,7 +136,7 @@ MAIN PBFD PROCEDURE
 31              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S2_ref(j,i) – Refinement Pattern Validation
+            -- Table 40: S2_ref(j,i) – Refinement Pattern Validation
             -- ─────────────────────────────────────────────────────────
 32          S2_ValidationRefinement(j, i_orig):
 33              Validate Patternⱼ                            -- CSP: validate_refinement_pattern_actual!j
@@ -161,7 +161,7 @@ MAIN PBFD PROCEDURE
 43              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S3_depth(i) – Depth Progression
+            -- Table 40: S3_depth(i) – Depth Progression
             -- ─────────────────────────────────────────────────────────
 44          S3_DepthProgression(i):
                 -- CSP: resolve_depth_actual!i → select_critical_children_actual!i
@@ -183,7 +183,7 @@ MAIN PBFD PROCEDURE
 54              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S3_rdep(j,i) – Refinement Depth Resolution
+            -- Table 40: S3_rdep(j,i) – Refinement Depth Resolution
             -- ─────────────────────────────────────────────────────────
 55          S3_RefinementDepthResolution(j, i_orig):
                 -- CSP: resolve_refinement_depth_actual!j
@@ -202,7 +202,7 @@ MAIN PBFD PROCEDURE
 62              end if
 
             -- ─────────────────────────────────────────────────────────
-            -- Table 40_DDD: S4_tdown(i) – Top‑Down Completion Phase
+            -- Table 40: S4_tdown(i) – Top‑Down Completion Phase
             -- ─────────────────────────────────────────────────────────
 63          S4(i):
 64              Finalize Patternᵢ                             -- CSP: finalize_pattern_actual!i
