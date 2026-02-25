@@ -1,0 +1,32 @@
+graph TD
+    %% Compact Layout for Single Column
+    subgraph Legend
+        LG1[Level N]
+        LG2[Level N+1]
+        LG3[Level N+2]
+        
+        %% Vertical layout within legend
+        LG1 --- LG2
+        LG2 --- LG3
+    end
+    
+    %% Main structure with condensed labels
+    G[Grandparent] --> P1[Parent A]
+    G --> P2[Parent B]
+    G --> P3[Parent C]
+
+    P1 --> B1[Bitmask A1]
+    P2 --> B2[Bitmask B1]
+    P3 --> B3[Bitmask C1]
+
+    %% Colors
+    classDef level1 fill:#E1F5FE,stroke:#039BE5
+    classDef level2 fill:#FFF8E1,stroke:#FBC02D
+    classDef level3 fill:#E8F5E9,stroke:#388E3C
+    
+    class G level1
+    class P1,P2,P3 level2
+    class B1,B2,B3 level3
+    class LG1 level1
+    class LG2 level2
+    class LG3 level3
