@@ -1,0 +1,30 @@
+stateDiagram-v2
+    state "S0: Idle" as S0
+    state "S1(u): Data Loaded" as S1
+    state "S2(u): Hierarchy Resolved" as S2
+    state "S3(u): Children Evaluated" as S3
+    state "S4(u): Children Updated" as S4
+    state "S5(u): Changes Committed" as S5
+    state "S6(u): Workflow Finalized" as S6
+
+    [*] --> S0 : TLE1 / start
+
+    %% Unit Processing Initiation
+    S0 --> S1 : TLE2 / load?u
+    S0 --> S6 : TLE11 / no_next_unit?u
+
+    %% Hierarchy and Evaluation
+    S1 --> S2 : TLE3 / hierarchy_resolved.u
+    S2 --> S3 : TLE4 / children_evaluated.u
+
+    %% Update Decision
+    S3 --> S4 : TLE5 / children_updated.u
+    S3 --> S5 : TLE6 / skip_update.u
+
+    %% Persistence and Continuation
+    S4 --> S5 : TLE7 / changes_committed.u
+    S5 --> S0 : TLE8 / has_next_unit
+    S5 --> S6 : TLE9 / no_next_unit.u
+
+    %% Workflow Finalization
+    S6 --> S0 : TLE10 / finalize_process.u
