@@ -1,0 +1,454 @@
+-- ========================================================================
+-- CDD CSP Specification 
+-- Cyclic Directed Development with Dependency-Aware Refinement
+-- ========================================================================
+-- Updated comments aligned with:
+--   Table 26 (State Semantics)
+--   Table 27 (Formal Transition Rules CD1–CD8)
+--
+-- Workflow Phases:
+--   S0 = Initialization (CD1)
+--   S1 = Node Processing (CD2, CD3a, CD3b, CD5)
+--   S2 = Refinement (CD4a, CD4c, CD4b)
+--   S3 = Validation (CD6a, CD6b, CD8, CD7)
+--   Termination = CD4b (error) and CD7 (success), both return to S0
+--
+-- ========================================================================
+-- Data Type Declarations
+-- ========================================================================
+
+datatype NodeID = N1 | N2 | N3 | N4 | N5
+datatype MilestoneID = M1 | M2 | M3
+datatype GraphStructure = Graph
+
+datatype NodeStatus = Completed | NotCompleted
+
+L_max = M3
+Rmax = 3  -- Maximum refinement attempts per node
+
+-- ========================================================================
+-- Dependency Graph Definition (Table 26)
+-- ========================================================================
+-- N1: no dependencies
+-- N2: depends on N1
+-- N3: depends on N1
+-- N4: depends on N2 and N3
+-- N5: depends on N4
+
+Dependencies(N1) = {}
+Dependencies(N2) = {N1}
+Dependencies(N3) = {N1}
+Dependencies(N4) = {N2, N3}
+Dependencies(N5) = {N4}
+
+deps_satisfied(N1, _, _, _, _, _) = True
+deps_satisfied(N2, completed_n1, _, _, _, _) = (completed_n1 == Completed)
+deps_satisfied(N3, completed_n1, _, _, _, _) = (completed_n1 == Completed)
+deps_satisfied(N4, _, completed_n2, completed_n3, _, _) =
+  ((completed_n2 == Completed) and (completed_n3 == Completed))
+deps_satisfied(N5, _, _, _, completed_n4, _) = (completed_n4 == Completed)
+
+all_nodes_completed(completed_n1, completed_n2, completed_n3, completed_n4, completed_n5) =
+  ((completed_n1 == Completed) and
+   (completed_n2 == Completed) and
+   (completed_n3 == Completed) and
+   (completed_n4 == Completed) and
+   (completed_n5 == Completed))
+
+mark_completed(N1, _, n2, n3, n4, n5) = (Completed, n2, n3, n4, n5)
+mark_completed(N2, n1, _, n3, n4, n5) = (n1, Completed, n3, n4, n5)
+mark_completed(N3, n1, n2, _, n4, n5) = (n1, n2, Completed, n4, n5)
+mark_completed(N4, n1, n2, n3, _, n5) = (n1, n2, n3, Completed, n5)
+mark_completed(N5, n1, n2, n3, n4, _) = (n1, n2, n3, n4, Completed)
+
+mark_not_completed(N1, _, n2, n3, n4, n5) = (NotCompleted, n2, n3, n4, n5)
+mark_not_completed(N2, n1, _, n3, n4, n5) = (n1, NotCompleted, n3, n4, n5)
+mark_not_completed(N3, n1, n2, _, n4, n5) = (n1, n2, NotCompleted, n4, n5)
+mark_not_completed(N4, n1, n2, n3, _, n5) = (n1, n2, n3, NotCompleted, n5)
+mark_not_completed(N5, n1, n2, n3, n4, _) = (n1, n2, n3, n4, NotCompleted)
+
+-- ========================================================================
+-- Function Declarations
+-- ========================================================================
+
+Next_Milestone(M1) = M2
+Next_Milestone(M2) = M3
+Next_Milestone(M3) = M3
+
+milestone_lt(M1, M2) = True
+milestone_lt(M1, M3) = True
+milestone_lt(M2, M3) = True
+milestone_lt(M1, M1) = False
+milestone_lt(M2, M2) = False
+milestone_lt(M3, M3) = False
+milestone_lt(M2, M1) = False
+milestone_lt(M3, M1) = False
+milestone_lt(M3, M2) = False
+
+-- ========================================================================
+-- Channel Declarations
+-- ========================================================================
+
+channel load_graph_actual : GraphStructure
+channel initialize_dependencies_actual
+channel all_components_written_actual : MilestoneID
+channel process_node_actual : NodeID
+channel test_failed_actual : NodeID
+channel feedback_triggered_actual : NodeID
+channel refine_component_actual : NodeID
+channel refinement_confirmed_actual : NodeID
+channel refinement_complete_actual : NodeID
+channel refinement_failed_actual : NodeID
+channel validate_increment_actual : MilestoneID
+channel validation_confirmed_actual : MilestoneID
+channel validation_failed_actual : MilestoneID
+channel feedback_received_actual : MilestoneID
+channel identify_flaw_actual : NodeID
+channel final_development_actual
+channel terminate_successfully_actual
+channel terminate_with_error_actual : NodeID
+channel advance_milestone_actual : MilestoneID
+
+-- ========================================================================
+-- STATE S0: INITIALIZATION (CD1)
+-- ========================================================================
+-- CD1: S0 -> S1
+-- Condition: -
+-- Operation: load_graph_actual!Graph -> initialize_dependencies_actual
+-- Target: S1(M1, NotCompleted×5)
+
+S0 =
+  load_graph_actual!Graph ->
+  initialize_dependencies_actual ->
+  S1(M1, NotCompleted, NotCompleted, NotCompleted, NotCompleted, NotCompleted)
+
+-- ========================================================================
+-- STATE S1: NODE PROCESSING (CD2, CD3a, CD3b, CD5)
+-- ========================================================================
+-- CD2: Successful node processing -> S1 (self-loop)
+-- CD3a: process_node_actual!c -> test_failed_actual!c -> S2
+-- CD3b: process_node_actual!c -> feedback_triggered_actual!c -> S2
+-- CD5: all_components_written_actual!k -> validate_increment_actual!k ->
+--      validation_confirmed_actual!k -> S3
+
+S1(k, n1, n2, n3, n4, n5) =
+  if all_nodes_completed(n1, n2, n3, n4, n5) then
+    -- CD5: All components written -> Validate increment -> S3
+    all_components_written_actual!k ->
+    validate_increment_actual!k ->
+    validation_confirmed_actual!k ->
+    S3(k, n1, n2, n3, n4, n5)
+  else
+    -- Try N1
+    (if n1 != Completed and deps_satisfied(N1, n1, n2, n3, n4, n5) then
+      process_node_actual!N1 ->
+      (
+        -- CD3a (N1): Test failed -> S2
+        test_failed_actual!N1 -> S2(N1, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD3b (N1): Feedback triggered -> S2
+        feedback_triggered_actual!N1 -> S2(N1, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD2 (N1): Node processed successfully -> S1 self-loop
+        let (n1', n2', n3', n4', n5') = mark_completed(N1, n1, n2, n3, n4, n5)
+        within S1(k, n1', n2', n3', n4', n5')
+      )
+    else STOP)
+    []
+    -- Try N2
+    (if n2 != Completed and deps_satisfied(N2, n1, n2, n3, n4, n5) then
+      process_node_actual!N2 ->
+      (
+        -- CD3a (N2): Test failed -> S2
+        test_failed_actual!N2 -> S2(N2, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD3b (N2): Feedback triggered -> S2
+        feedback_triggered_actual!N2 -> S2(N2, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD2 (N2): Node processed successfully -> S1 self-loop
+        let (n1', n2', n3', n4', n5') = mark_completed(N2, n1, n2, n3, n4, n5)
+        within S1(k, n1', n2', n3', n4', n5')
+      )
+    else STOP)
+    []
+    -- Try N3
+    (if n3 != Completed and deps_satisfied(N3, n1, n2, n3, n4, n5) then
+      process_node_actual!N3 ->
+      (
+        -- CD3a (N3): Test failed -> S2
+        test_failed_actual!N3 -> S2(N3, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD3b (N3): Feedback triggered -> S2
+        feedback_triggered_actual!N3 -> S2(N3, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD2 (N3): Node processed successfully -> S1 self-loop
+        let (n1', n2', n3', n4', n5') = mark_completed(N3, n1, n2, n3, n4, n5)
+        within S1(k, n1', n2', n3', n4', n5')
+      )
+    else STOP)
+    []
+    -- Try N4
+    (if n4 != Completed and deps_satisfied(N4, n1, n2, n3, n4, n5) then
+      process_node_actual!N4 ->
+      (
+        -- CD3a (N4): Test failed -> S2
+        test_failed_actual!N4 -> S2(N4, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD3b (N4): Feedback triggered -> S2
+        feedback_triggered_actual!N4 -> S2(N4, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD2 (N4): Node processed successfully -> S1 self-loop
+        let (n1', n2', n3', n4', n5') = mark_completed(N4, n1, n2, n3, n4, n5)
+        within S1(k, n1', n2', n3', n4', n5')
+      )
+    else STOP)
+    []
+    -- Try N5
+    (if n5 != Completed and deps_satisfied(N5, n1, n2, n3, n4, n5) then
+      process_node_actual!N5 ->
+      (
+        -- CD3a (N5): Test failed -> S2
+        test_failed_actual!N5 -> S2(N5, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD3b (N5): Feedback triggered -> S2
+        feedback_triggered_actual!N5 -> S2(N5, k, n1, n2, n3, n4, n5, 0)
+        []
+        -- CD2 (N5): Node processed successfully -> S1 self-loop
+        let (n1', n2', n3', n4', n5') = mark_completed(N5, n1, n2, n3, n4, n5)
+        within S1(k, n1', n2', n3', n4', n5')
+      )
+    else STOP)
+
+-- ========================================================================
+-- STATE S2: REFINEMENT (CD4a, CD4c, CD4b)
+-- ========================================================================
+-- CD4a: refinement_complete_actual!c -> S1
+-- CD4c: refinement_failed_actual!c AND attempts_remaining -> S2(..., attempts+1)
+-- CD4b: refinement_failed_actual!c AND attempts_exceeded ->
+--       terminate_with_error_actual!c -> S0
+
+S2(c, k, n1, n2, n3, n4, n5, attempts) =
+  refine_component_actual!c ->
+  refinement_confirmed_actual!c ->
+  (
+    -- CD4a: Refinement complete -> back to S1
+    refinement_complete_actual!c ->
+      S1(k, n1, n2, n3, n4, n5)
+    []
+    -- CD4c / CD4b: Refinement failed -> either retry or terminate
+    refinement_failed_actual!c ->
+      if attempts + 1 >= Rmax then
+        -- CD4b: attempts_exceeded -> terminate_with_error_actual!c -> S0
+        terminate_with_error_actual!c ->
+        S0
+      else
+        -- CD4c: attempts_remaining -> retry S2 with attempts+1
+        S2(c, k, n1, n2, n3, n4, n5, attempts + 1)
+  )
+
+-- ========================================================================
+-- STATE S3: VALIDATION (CD6a, CD6b, CD8, CD7)
+-- ========================================================================
+-- CD6a: validation_failed_actual!k -> identify_flaw_actual?c -> S2
+-- CD6b: feedback_received_actual!k -> identify_flaw_actual?c -> S2
+-- CD8: validation_successful AND k < L_max ->
+--      advance_milestone_actual!Next_Milestone(k) ->
+--      S1(Next_Milestone(k), NotCompleted×5)
+-- CD7: validation_successful AND k = L_max ->
+--      final_development_actual -> terminate_successfully_actual -> S0
+
+S3(k, n1, n2, n3, n4, n5) =
+  (
+    -- CD6a: Validation failed -> identify flawed node -> S2
+    validation_failed_actual!k ->
+    identify_flaw_actual?c ->
+    let (n1', n2', n3', n4', n5') = mark_not_completed(c, n1, n2, n3, n4, n5)
+    within S2(c, k, n1', n2', n3', n4', n5', 0)
+  )
+  []
+  (
+    -- CD6b: Feedback received -> identify flawed node -> S2
+    feedback_received_actual!k ->
+    identify_flaw_actual?c ->
+    let (n1', n2', n3', n4', n5') = mark_not_completed(c, n1, n2, n3, n4, n5)
+    within S2(c, k, n1', n2', n3', n4', n5', 0)
+  )
+  []
+  (
+    if milestone_lt(k, L_max) then
+      -- CD8: Validation successful and k < L_max -> advance milestone -> S1
+      advance_milestone_actual!Next_Milestone(k) ->
+      S1(Next_Milestone(k), NotCompleted, NotCompleted, NotCompleted, NotCompleted, NotCompleted)
+    else
+      -- CD7: Validation successful and k = L_max -> final development -> terminate_successfully -> S0
+      final_development_actual ->
+      terminate_successfully_actual ->
+      S0
+  )
+
+-- ========================================================================
+-- TOP-LEVEL PROCESS
+-- ========================================================================
+
+CDD = S0
+
+-- ========================================================================
+-- VERIFICATION ASSERTIONS
+-- ========================================================================
+
+assert CDD :[deadlock free]
+assert CDD :[divergence free]
+
+ProtocolAlphabet = {|
+  load_graph_actual, initialize_dependencies_actual,
+  all_components_written_actual, process_node_actual,
+  validate_increment_actual, validation_confirmed_actual,
+  refine_component_actual, refinement_confirmed_actual,
+  refinement_complete_actual, refinement_failed_actual,
+  identify_flaw_actual, advance_milestone_actual,
+  final_development_actual, terminate_successfully_actual,
+  terminate_with_error_actual
+|}
+
+ConditionalEvents = {|
+  test_failed_actual, feedback_triggered_actual,
+  validation_failed_actual, feedback_received_actual
+|}
+
+AllEvents = union(ProtocolAlphabet, ConditionalEvents)
+
+CDDProtocolView = CDD \ ConditionalEvents
+ProtocolChecker = RUN(ProtocolAlphabet)
+
+assert ProtocolChecker [T= CDDProtocolView
+assert CDDProtocolView :[divergence free]
+
+NoEarlyTermination =
+  load_graph_actual?g ->
+  initialize_dependencies_actual ->
+  RUN(AllEvents)
+
+assert NoEarlyTermination [T= CDD
+
+DependencySpec_N4 =
+  load_graph_actual?g ->
+  initialize_dependencies_actual ->
+  let
+    AfterInit =
+      process_node_actual.N2 -> AfterN2
+      []
+      process_node_actual.N3 -> AfterN3
+      []
+      process_node_actual.N1 -> AfterInit
+      []
+      RUN(AllEvents)
+
+    AfterN2 =
+      process_node_actual.N3 -> CanProcessN4
+      []
+      process_node_actual.N4 -> STOP  -- N4 before N3 is invalid!
+      []
+      RUN(diff(AllEvents, {process_node_actual.N4}))
+
+    AfterN3 =
+      process_node_actual.N2 -> CanProcessN4
+      []
+      process_node_actual.N4 -> STOP  -- N4 before N2 is invalid!
+      []
+      RUN(diff(AllEvents, {process_node_actual.N4}))
+
+    CanProcessN4 =
+      RUN(AllEvents)  -- Now N4 can be processed
+  within AfterInit
+
+assert DependencySpec_N4 [T= CDD
+
+DependencySpec_N5 =
+  load_graph_actual!Graph ->
+  initialize_dependencies_actual ->
+  let
+    AfterInit =
+      process_node_actual.N4 -> AfterN4
+      []
+      process_node_actual.N5 -> STOP  -- N5 before N4 is invalid!
+      []
+      process_node_actual.N1 -> AfterInit
+      []
+      process_node_actual.N2 -> AfterInit
+      []
+      process_node_actual.N3 -> AfterInit
+      []
+      RUN(AllEvents)
+
+    AfterN4 =
+      RUN(AllEvents)  -- Now N5 can be processed
+  within AfterInit
+
+assert DependencySpec_N5 [T= CDD
+
+HostileEnv_Refinement =
+  validation_failed_actual?m -> HostileEnv_Refinement
+  []
+  feedback_received_actual?m -> HostileEnv_Refinement
+  []
+  identify_flaw_actual?c -> HostileEnv_Refinement
+  []
+  refine_component_actual?c -> HostileEnv_Refinement
+  []
+  refinement_confirmed_actual?c -> HostileEnv_Refinement
+  []
+  refinement_failed_actual?c -> HostileEnv_Refinement  -- Always fail
+  []
+  terminate_with_error_actual?c -> HostileEnv_Refinement
+  []
+  load_graph_actual?g -> HostileEnv_Refinement
+  []
+  initialize_dependencies_actual -> HostileEnv_Refinement
+  []
+  all_components_written_actual?m -> HostileEnv_Refinement
+  []
+  process_node_actual?n -> HostileEnv_Refinement
+  []
+  test_failed_actual?n -> HostileEnv_Refinement
+  []
+  feedback_triggered_actual?n -> HostileEnv_Refinement
+  []
+  validate_increment_actual?m -> HostileEnv_Refinement
+  []
+  validation_confirmed_actual?m -> HostileEnv_Refinement
+  []
+  advance_milestone_actual?m -> HostileEnv_Refinement
+  []
+  final_development_actual -> HostileEnv_Refinement
+  []
+  terminate_successfully_actual -> HostileEnv_Refinement
+
+RefinementEvents = {|
+  validation_failed_actual,
+  feedback_received_actual,
+  identify_flaw_actual,
+  refine_component_actual,
+  refinement_confirmed_actual,
+  refinement_failed_actual,
+  terminate_with_error_actual
+|}
+
+CDD_Hostile = CDD [| RefinementEvents |] HostileEnv_Refinement
+
+assert CDD_Hostile :[deadlock free]
+assert CDD_Hostile :[divergence free]
+
+ConditionalConsistency =
+  test_failed_actual?c -> feedback_triggered_actual.c -> STOP
+  []
+  validation_failed_actual?m -> feedback_received_actual.m -> STOP
+  []
+  refinement_complete_actual?c -> refinement_failed_actual.c -> STOP
+  []
+  SKIP
+
+assert ConditionalConsistency [T= STOP
+
+-- ========================================================================
+-- End of File
+-- ========================================================================
