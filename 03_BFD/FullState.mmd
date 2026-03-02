@@ -1,0 +1,29 @@
+stateDiagram-v2
+    direction TB
+
+    [*] --> S0 : Start
+
+    state "S0: Initialization" as S0
+    state "S1: Level Processing" as S1
+    state "S2: Level Validation" as S2
+    state "T: Termination" as T
+
+    %% BF1: Initialization
+    S0 --> S1 : BF1<br/>Load tree<br/>Initialize root queue
+
+    %% BF2a: Leaf node
+    S1 --> S1 : BF2a [node has no children]<br/>Process node<br/>No enqueue
+
+    %% BF2b: Internal node
+    S1 --> S1 : BF2b [node has children]<br/>Process node<br/>Append children to nextQ (ordered)
+
+    %% BF3: Level complete
+    S1 --> S2 : BF3 [currentQ empty]<br/>Validate level
+
+    %% BF4: Advance to next level
+    S2 --> S1 : BF4 [nextQ non-empty]<br/>Advance level
+
+    %% BF5: Terminate
+    S2 --> T : BF5 [nextQ empty]<br/>Terminate successfully
+
+    T --> [*]
