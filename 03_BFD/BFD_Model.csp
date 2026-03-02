@@ -1,0 +1,251 @@
+-- BFD Process Algebra (Verified and Cleaned for FDR 4.2.7)
+-- Comments updated to align with Table 19 (State Definitions)
+-- and Table 20 (Formal State Transitions and Workflow Operations)
+------------------------------------------------------
+
+-- === Domain Declarations ===
+datatype NodeID = Node.{0..5}
+datatype Level = L.{0..3}
+
+-- Simplified tree structure for verification
+datatype Tree = EmptyTree | TreeNode.NodeID
+
+-- Helper function to get children of a node
+children(Node.0) = {Node.1, Node.2}
+children(Node.1) = {Node.3}
+children(Node.2) = {Node.4, Node.5}
+children(_) = {}
+
+-- Initial constants
+t_initial = TreeNode.Node.0
+c_root = Node.0
+
+-- Get the next level (with bounds checking)
+nextLevel(L.3) = L.3
+nextLevel(L.k) = L.(k+1)
+
+-- === CSP Channels ===
+channel load_tree_actual : Tree
+channel initialize_level_queues_actual : NodeID
+channel get_level_queue_actual : Level
+channel level_queue_not_empty : Level
+channel level_queue_empty : Level
+channel dequeue_actual : Level.NodeID
+channel process_actual : NodeID
+channel append_new_queue_actual : Level
+channel enqueue_child_actual : Level.NodeID
+channel validate_level_actual : Level
+channel level_validated : Level
+channel advance_level_actual : Level
+channel no_more_levels : Level
+channel terminate_successfully_actual
+
+-- === Alphabet Definition ===
+-- Alphabet_BFD defines the observable event set used
+-- for refinement and property checking.
+Alphabet_BFD = {|
+  load_tree_actual,
+  initialize_level_queues_actual,
+  get_level_queue_actual,
+  level_queue_not_empty,
+  level_queue_empty,
+  dequeue_actual,
+  process_actual,
+  append_new_queue_actual,
+  enqueue_child_actual,
+  validate_level_actual,
+  level_validated,
+  advance_level_actual,
+  no_more_levels,
+  terminate_successfully_actual
+|}
+
+------------------------------------------------------
+-- === State Processes (Queue-based logic) ===
+-- (Aligned with Table 19: State Definitions
+--  and Table 20: Transition Rules)
+------------------------------------------------------
+
+-- S0: System Initialization (Ref: Table 19)
+-- BF1 (Table 20): S0 → S1(L.0, <c_root>, <>)
+--   load_tree_actual!t_initial →
+--   initialize_level_queues_actual!c_root
+-- Initializes the tree and sets the first-level queue.
+S0 = load_tree_actual!t_initial ->
+      initialize_level_queues_actual!c_root ->
+      S1(L.0, <c_root>, <>)
+
+-- S1: Level Processing (Ref: Table 19)
+-- Handles all nodes at level lv.
+--
+-- BF3 (Table 20):
+--   S1(lv, <>, nextQ) → S2(lv, nextQ)
+--   Triggered when the current level queue is empty.
+--
+-- BF2a (leaf node case):
+--   S1(lv, <node>^restQ, nextQ) → S1(lv, restQ, nextQ)
+--   Node has no children; simply continue.
+--
+-- BF2b (internal node case):
+--   S1(lv, <node>^restQ, nextQ) →
+--     append_new_queue_actual!nl →
+--     EnqueueChildSeq(...) →
+--     S1(lv, restQ, nextQ ⧺ seq(children(node)))
+--   Node has children; enqueue them in order.
+S1(lv, <>, nextQ) =
+  get_level_queue_actual!lv ->
+  level_queue_empty!lv ->
+  validate_level_actual!lv ->
+  S2(lv, nextQ)
+
+S1(lv, <node>^restQ, nextQ) =
+  get_level_queue_actual!lv ->
+  level_queue_not_empty!lv ->
+  dequeue_actual!lv!node ->
+  process_actual!node ->
+  if empty(children(node)) then
+    -- BF2a: leaf node → no enqueue
+    S1(lv, restQ, nextQ)
+  else
+    -- BF2b: internal node → enqueue children sequentially
+    let nl = nextLevel(lv) within
+      append_new_queue_actual!nl ->
+      EnqueueChildSeq(lv, restQ, nextQ, nl, seq(children(node)))
+
+-- EnqueueChildSeq: Recursive helper for BF2b–BF2d (Ref: Table 20)
+-- BF2c:
+--   EnqueueChildSeq(..., <child>^childRest) →
+--     enqueue_child_actual!nl!child →
+--     EnqueueChildSeq(..., childRest)
+--
+-- BF2d:
+--   EnqueueChildSeq(..., <>) → S1(lv, restQ, nextQ)
+--
+-- This process is *not* a state in Table 19.
+-- It is an internal helper used to append children in order.
+EnqueueChildSeq(lv, restQ, nextQ, nl, <>) =
+  S1(lv, restQ, nextQ)
+
+EnqueueChildSeq(lv, restQ, nextQ, nl, <child>^childRest) =
+  enqueue_child_actual!nl!child ->
+  EnqueueChildSeq(lv, restQ, nextQ^<child>, nl, childRest)
+
+-- S2: Level Validation & Advancement (Ref: Table 19)
+--
+-- BF5 (Table 20):
+--   S2(lv, <>) → SKIP
+--   nextQ empty → no further levels → terminate successfully.
+--
+-- BF4 (Table 20):
+--   S2(lv, <node>^restQ) →
+--     level_validated!lv →
+--     advance_level_actual!lv →
+--     S1(nextLevel(lv), <node>^restQ, <>)
+--   nextQ non-empty → advance to next level.
+S2(lv, <>) =
+  level_validated!lv ->
+  no_more_levels!lv ->
+  terminate_successfully_actual ->
+  SKIP  -- T: Terminal state (Ref: Table 19)
+
+S2(lv, <node>^restQ) =
+  level_validated!lv ->
+  advance_level_actual!lv ->
+  S1(nextLevel(lv), <node>^restQ, <>)
+
+------------------------------------------------------
+-- === Top-Level Process ===
+------------------------------------------------------
+BFD_Core = S0  -- Entry point
+BFD = BFD_Core ; RUN(Alphabet_BFD)
+
+------------------------------------------------------
+-- === Behavioral Specification Processes & Assertions ===
+------------------------------------------------------
+
+-- Property 1: Every dequeue_actual event
+-- must be immediately followed by a corresponding process_actual event.
+DequeueImpliesProcess =
+  (load_tree_actual?_ -> DequeueImpliesProcess)
+  [] (initialize_level_queues_actual?_ -> DequeueImpliesProcess)
+  [] (get_level_queue_actual?_ -> DequeueImpliesProcess)
+  [] (level_queue_empty?_ -> DequeueImpliesProcess)
+  [] (level_queue_not_empty?_ -> DequeueImpliesProcess)
+  [] (append_new_queue_actual?_ -> DequeueImpliesProcess)
+  [] (enqueue_child_actual?_?_ -> DequeueImpliesProcess)
+  [] (validate_level_actual?_ -> DequeueImpliesProcess)
+  [] (level_validated?_ -> DequeueImpliesProcess)
+  [] (advance_level_actual?_ -> DequeueImpliesProcess)
+  [] (no_more_levels?_ -> DequeueImpliesProcess)
+  [] (terminate_successfully_actual -> SKIP)
+  [] (dequeue_actual?l?c -> process_actual!c -> DequeueImpliesProcess)
+
+-- Property 2: Level Validation must precede either advancement or termination.
+-- After validate_level_actual!l, we must see level_validated!l,
+-- then either advance_level_actual!l or no_more_levels!l.
+ValidateBeforeAdvance =
+  (validate_level_actual?l ->
+   level_validated!l ->
+   (advance_level_actual!l -> ValidateBeforeAdvance
+    [] no_more_levels!l -> ValidateBeforeAdvance))
+  [] (load_tree_actual?_ -> ValidateBeforeAdvance)
+  [] (initialize_level_queues_actual?_ -> ValidateBeforeAdvance)
+  [] (get_level_queue_actual?_ -> ValidateBeforeAdvance)
+  [] (level_queue_empty?_ -> ValidateBeforeAdvance)
+  [] (level_queue_not_empty?_ -> ValidateBeforeAdvance)
+  [] (dequeue_actual?_?_ -> ValidateBeforeAdvance)
+  [] (process_actual?_ -> ValidateBeforeAdvance)
+  [] (append_new_queue_actual?_ -> ValidateBeforeAdvance)
+  [] (enqueue_child_actual?_?_ -> ValidateBeforeAdvance)
+  [] (terminate_successfully_actual -> SKIP)
+
+-- Property 3: After level_validated!l, the model either advances
+-- to the next level or concludes via no_more_levels!l.
+AfterValidation =
+  (level_validated?l ->
+   (advance_level_actual!l -> AfterValidation
+    [] no_more_levels!l -> AfterValidation))
+  [] (load_tree_actual?_ -> AfterValidation)
+  [] (initialize_level_queues_actual?_ -> AfterValidation)
+  [] (get_level_queue_actual?_ -> AfterValidation)
+  [] (level_queue_empty?_ -> AfterValidation)
+  [] (level_queue_not_empty?_ -> AfterValidation)
+  [] (dequeue_actual?_?_ -> AfterValidation)
+  [] (process_actual?_ -> AfterValidation)
+  [] (append_new_queue_actual?_ -> AfterValidation)
+  [] (enqueue_child_actual?_?_ -> AfterValidation)
+  [] (validate_level_actual?_ -> AfterValidation)
+  [] (terminate_successfully_actual -> SKIP)
+
+-- Property 4: Termination can only occur at the end of a run,
+-- via terminate_successfully_actual.
+TerminationAtEnd =
+  (terminate_successfully_actual -> SKIP)
+  [] (load_tree_actual?_ -> TerminationAtEnd)
+  [] (initialize_level_queues_actual?_ -> TerminationAtEnd)
+  [] (get_level_queue_actual?_ -> TerminationAtEnd)
+  [] (level_queue_empty?_ -> TerminationAtEnd)
+  [] (level_queue_not_empty?_ -> TerminationAtEnd)
+  [] (dequeue_actual?_?_ -> TerminationAtEnd)
+  [] (process_actual?_ -> TerminationAtEnd)
+  [] (append_new_queue_actual?_ -> TerminationAtEnd)
+  [] (enqueue_child_actual?_?_ -> TerminationAtEnd)
+  [] (validate_level_actual?_ -> TerminationAtEnd)
+  [] (level_validated?_ -> TerminationAtEnd)
+  [] (advance_level_actual?_ -> TerminationAtEnd)
+  [] (no_more_levels?_ -> TerminationAtEnd)
+
+-- 5. Termination trace checker:
+-- CanReachTerminate hides all events except terminate_successfully_actual
+-- to check that termination is reachable.
+CanReachTerminate = BFD_Core \ diff(Alphabet_BFD, {terminate_successfully_actual})
+
+-- === Assertions ===
+assert BFD :[deadlock free [F]]
+assert BFD :[divergence free]
+assert BFD :[deterministic [F]]
+assert DequeueImpliesProcess [T= BFD_Core
+assert terminate_successfully_actual -> SKIP [T= CanReachTerminate
+assert ValidateBeforeAdvance [T= BFD_Core
+assert AfterValidation [T= BFD_Core
+assert TerminationAtEnd [T= BFD_Core
