@@ -54,6 +54,7 @@ Output: Level-synchronized implementation (CSP-traceable)
         -- BF3: currentQ empty → transition to S2
         --------------------------------------------------------
 22.     level_queue_empty!level
+23.     validate_level_actual!level
 
         --------------------------------------------------------
         -- STATE S2: Level Validation (Table 19)
@@ -64,7 +65,6 @@ Output: Level-synchronized implementation (CSP-traceable)
         --             no_more_levels!level,
         --             terminate_successfully_actual
         --------------------------------------------------------
-23.     validate_level_actual!level
 24.     level_validated!level
 
 25.     if nextQ = [] then
