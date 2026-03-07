@@ -1,0 +1,24 @@
+stateDiagram-v2
+    direction TB
+
+    [*] --> S0: Start
+
+    %% DF1: Initialization
+    S0 --> S1: DF1<br/>load tree,<br/>init stack to ⟨c_root⟩
+
+    %% DF2–DF3: Vertical processing
+    S1 --> S1: DF2<br/>non-leaf(c)<br/>push children
+    S1 --> S2: DF3<br/>leaf(c)<br/>set backtrack point
+
+    %% DF8: Empty stack termination
+    S1 --> T: DF8<br/>stack = ⟨⟩
+
+    %% DF4–DF5: Backtracking
+    S2 --> S1: DF4<br/>∃ unprocessed sibling<br/>push sibling
+    S2 --> S3: DF5<br/>no unprocessed siblings<br/>validate subtree
+
+    %% DF6–DF7: Validation
+    S3 --> S2: DF6<br/>b_j ≠ c_root<br/>backtrack upward
+    S3 --> T: DF7<br/>b_j = c_root<br/>final termination
+
+    T --> [*]
