@@ -1,5 +1,5 @@
 -- DFD Process Algebra (Aligned with Figure 5: Workflow,
--- Table 12_DDD: State Definitions, Table 13_DDD: Transition Rules)
+-- Table 12: State Definitions, Table 13: Transition Rules)
 -- Compatible with FDR 4.2.7
 --
 -- Each state block corresponds to S0–S3 and T.
