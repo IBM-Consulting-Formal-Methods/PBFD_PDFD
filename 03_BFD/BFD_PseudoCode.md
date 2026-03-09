@@ -28,7 +28,7 @@ Output: Level-synchronized breadth-first traversal
 12.             Enqueue(nextQ, child) // BF2b: Internal node
 
         ----------------------------------------------------
-        -- STATE S2: Level Validation
+        -- STATE S2: Level Validation (BF3: S1 → S2) 
         ----------------------------------------------------
 13.     ValidateLevel(level)
 
