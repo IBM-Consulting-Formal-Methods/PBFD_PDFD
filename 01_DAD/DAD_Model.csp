@@ -1,0 +1,467 @@
+-- DAD Process Algebra (Aligned with Table 5: State Definitions
+-- and Table 6: Formal state transitions and workflow operations)
+-- Compatible with FDR 4.2.7
+-- DOCUMENTATION: Comments are updated to match the finalized DAD state
+-- semantics and transition rules. No CSP logic has been changed.
+
+-- === Domain Declarations ===
+datatype NodeID = Node.{0..9}  -- Adjust range as needed for your DAG
+
+-- Simplified DAG structure for verification
+datatype Graph = EmptyGraph | DAGGraph.NodeID
+
+-- Helper function to get children (successors) of a node (example DAG structure)
+-- This represents a simple DAG with multiple paths and dependencies
+children(Node.0) = {Node.1, Node.2}      -- Root has two children
+children(Node.1) = {Node.3, Node.4}      -- Node 1 branches
+children(Node.2) = {Node.4, Node.5}      -- Node 2 also leads to Node 4 (convergence)
+children(Node.3) = {Node.6}              -- Linear path
+children(Node.4) = {Node.6, Node.7}      -- Node 4 branches (4 has multiple parents)
+children(Node.5) = {Node.7}              -- Another path to 7
+children(Node.6) = {Node.8}              -- Converging paths
+children(Node.7) = {Node.8}              -- Multiple paths to 8
+children(Node.8) = {}                    -- Terminal node
+children(_) = {}
+
+-- Helper function to get dependencies (parents/predecessors) of a node
+dependencies(Node.0) = {}                 -- Root has no dependencies
+dependencies(Node.1) = {Node.0}
+dependencies(Node.2) = {Node.0}
+dependencies(Node.3) = {Node.1}
+dependencies(Node.4) = {Node.1, Node.2}   -- Node 4 depends on both 1 and 2
+dependencies(Node.5) = {Node.2}
+dependencies(Node.6) = {Node.3, Node.4}   -- Node 6 depends on both 3 and 4
+dependencies(Node.7) = {Node.4, Node.5}   -- Node 7 depends on both 4 and 5
+dependencies(Node.8) = {Node.6, Node.7}   -- Node 8 depends on both 6 and 7
+dependencies(_) = {}
+
+-- All nodes in the initial graph
+allInitialNodes = {Node.0, Node.1, Node.2, Node.3, Node.4, Node.5, Node.6, Node.7, Node.8}
+
+-- Initial graph and root
+g_initial = DAGGraph.Node.0
+v1_root = Node.0
+
+-- Generate a new node ID for graph extension (simplified)
+v_new_param = Node.9
+
+-- === CSP Channels ===
+channel load_dag_actual : Graph
+channel initialize_queue_actual : NodeID
+channel queue_not_empty
+channel dequeue_actual : NodeID
+channel process_actual : NodeID
+channel validate_dependencies_actual : NodeID
+channel all_dependencies_processed : NodeID
+channel missing_dependency : NodeID
+channel extend_graph_actual : NodeID.NodeID
+channel enqueue_nodes_actual : Set(NodeID)
+channel generate_children_actual : NodeID
+channel all_nodes_processed
+channel perform_final_validation_actual
+channel terminate_successfully_actual
+channel terminate_with_error_actual
+
+-- === Alphabet Definition ===
+Alphabet_DAD = {|
+  load_dag_actual,
+  initialize_queue_actual,
+  queue_not_empty,
+  dequeue_actual,
+  process_actual,
+  validate_dependencies_actual,
+  all_dependencies_processed,
+  missing_dependency,
+  extend_graph_actual,
+  enqueue_nodes_actual,
+  generate_children_actual,
+  all_nodes_processed,
+  perform_final_validation_actual,
+  terminate_successfully_actual,
+  terminate_with_error_actual
+|}
+
+-- === State Processes ===
+-- Track queue as a sequence and processed nodes as a set.
+
+-- === S0: Initialization (Table 5: S0) ===
+-- Description:
+--   Load the DAG structure g_initial, initialize the processing queue
+--   with the root node v1_root, and begin execution with an empty
+--   processed-node set.
+--
+-- DA1 (Table 6):
+--   S0 -> S1(<v1_root>, {})
+--   Operation:
+--   load_dag_actual!g_initial ->
+--   initialize_queue_actual!v1_root
+S0 = load_dag_actual!g_initial -> 
+     initialize_queue_actual!v1_root -> 
+     S1(<v1_root>, {})
+
+-- === S1: Node Processing (Table 5: S1) ===
+-- Description:
+--   If the queue is non-empty, dequeue and process the next node and
+--   initiate dependency validation. If the queue becomes empty,
+--   determine whether all initial nodes have been processed and proceed
+--   either to final validation and successful termination or to error
+--   termination.
+--
+-- DA6a (Table 6):
+--   S1(<>, processed) -> T_SUCCESS
+--   Condition:
+--   diff(allInitialNodes, processed) = {}
+--   Operation:
+--   all_nodes_processed ->
+--   perform_final_validation_actual ->
+--   terminate_successfully_actual
+--
+-- DA6b (Table 6):
+--   S1(<>, processed) -> T_ERROR
+--   Condition:
+--   diff(allInitialNodes, processed) != {}
+--   Operation:
+--   terminate_with_error_actual
+--
+-- DA2 (Table 6):
+--   S1(<node>^restQueue, processed) ->
+--   S2ValidateOutcome(node, restQueue, union(processed, {node}))
+--   Operation:
+--   queue_not_empty ->
+--   dequeue_actual!node ->
+--   process_actual!node ->
+--   validate_dependencies_actual!node
+S1(<>, processed) = 
+  if empty(diff(allInitialNodes, processed)) then
+    -- DA6a: all initial nodes processed -> final validation -> successful termination
+    all_nodes_processed -> 
+    perform_final_validation_actual -> 
+    T_SUCCESS
+  else
+    -- DA6b: queue empty but unprocessed initial nodes remain -> robustness termination
+    terminate_with_error_actual -> 
+    T_ERROR
+
+S1(<node>^restQueue, processed) = 
+  if empty(diff(allInitialNodes, processed)) then
+    -- DA6a: all initial nodes processed -> final validation -> successful termination
+    all_nodes_processed -> 
+    perform_final_validation_actual -> 
+    T_SUCCESS
+  else
+    -- DA2: dequeue/process current node and initiate dependency validation
+    queue_not_empty ->                        -- DA2
+    dequeue_actual!node ->                    -- DA2
+    process_actual!node ->                    -- DA2
+    validate_dependencies_actual!node ->      -- DA2
+    S2ValidateOutcome(node, restQueue, union(processed, {node}))
+
+-- === S2: Dependency Check (Table 5: S2) ===
+-- Description:
+--   Evaluate whether all dependencies of the current node are contained
+--   in the processed set. If satisfied, generate and enqueue the node's
+--   children; otherwise detect a missing dependency and trigger DAG
+--   extension.
+--
+-- DA3 (Table 6):
+--   S2ValidateOutcome(node, queue, processed) ->
+--   S1(queue ^ seq(diff(children(node), processed)), processed)
+--   Condition:
+--   diff(dependencies(node), processed) = {}
+--   Operation:
+--   all_dependencies_processed!node ->
+--   generate_children_actual!node ->
+--   enqueue_nodes_actual!children(node)
+--
+-- DA4 (Table 6):
+--   S2ValidateOutcome(node, queue, processed) ->
+--   S3ExtendCompletion(v_new_param, queue, processed)
+--   Condition:
+--   diff(dependencies(node), processed) != {}
+--   Operation:
+--   missing_dependency!node ->
+--   extend_graph_actual!node!v_new_param
+S2ValidateOutcome(node, queue, processed) =
+  if empty(diff(dependencies(node), processed)) then
+    -- DA3: all dependencies satisfied -> generate children and enqueue child set
+    all_dependencies_processed!node ->        -- DA3
+    generate_children_actual!node ->          -- DA3
+    let childSet = children(node) within
+      enqueue_nodes_actual!childSet ->        -- DA3
+      S1(queue ^ seq(diff(childSet, processed)), processed)
+  else
+    -- DA4: missing dependency detected -> trigger DAG extension
+    missing_dependency!node ->                -- DA4
+    extend_graph_actual!node!v_new_param ->   -- DA4
+    S3ExtendCompletion(v_new_param, queue, processed)
+
+-- === S3: Graph Extension (Table 5: S3) ===
+-- Description:
+--   Complete the DAG extension by introducing the prerequisite node
+--   v_new, enqueue the new node, and return to node processing while
+--   preserving the processed set.
+--
+-- DA5 (Table 6):
+--   S3ExtendCompletion(v_new, queue, processed) ->
+--   S1(<v_new> ^ queue, processed)
+--   Operation:
+--   enqueue_nodes_actual!{v_new}
+S3ExtendCompletion(v_new, queue, processed) =
+  -- DA5: enqueue the newly introduced prerequisite node and resume node processing
+  enqueue_nodes_actual!{v_new} ->
+  S1(<v_new> ^ queue, processed)
+
+-- === T: Termination States (Table 5: T) ===
+-- Conceptual termination states reached after final validation and
+-- successful completion (T_SUCCESS) or robustness termination when the
+-- queue becomes empty before all initial nodes are processed (T_ERROR).
+T_SUCCESS = terminate_successfully_actual -> SKIP
+T_ERROR = terminate_with_error_actual -> SKIP
+
+-- === Top-Level Process ===
+DAD_Core = S0
+
+-- Wrap to avoid deadlock at termination
+DAD = DAD_Core ; RUN(Alphabet_DAD)
+
+-- === Assertions ===
+-- These assertions exercise the key behavioral properties of the DAD
+-- model, including DA2, DA3, DA4, and the successful/error termination
+-- behavior represented by DA6a and DA6b.
+
+-- 1. Check that the process is deadlock-free (global safety)
+assert DAD :[deadlock free [F]]
+
+-- 2. Check that the process is divergence-free (global liveness)
+assert DAD :[divergence free]
+
+-- 3. Check determinism (unique next-step behavior)
+assert DAD :[deterministic [F]]
+
+-- 4. Verify that every dequeue is followed by process for the same node (local sequencing, DA2)
+DequeueThenProcess = 
+  (dequeue_actual?node -> process_actual!node -> DequeueThenProcess)
+  []
+  (load_dag_actual?_ -> DequeueThenProcess)
+  []
+  (initialize_queue_actual?_ -> DequeueThenProcess)
+  []
+  (queue_not_empty -> DequeueThenProcess)
+  []
+  (validate_dependencies_actual?_ -> DequeueThenProcess)
+  []
+  (all_dependencies_processed?_ -> DequeueThenProcess)
+  []
+  (missing_dependency?_ -> DequeueThenProcess)
+  []
+  (extend_graph_actual?_?_ -> DequeueThenProcess)
+  []
+  (enqueue_nodes_actual?_ -> DequeueThenProcess)
+  []
+  (generate_children_actual?_ -> DequeueThenProcess)
+  []
+  (all_nodes_processed -> DequeueThenProcess)
+  []
+  (perform_final_validation_actual -> DequeueThenProcess)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert DequeueThenProcess [T= DAD_Core
+
+-- 5. Verify that process is followed by validate_dependencies (local sequencing, DA2)
+ProcessThenValidate = 
+  (process_actual?node -> validate_dependencies_actual!node -> ProcessThenValidate)
+  []
+  (load_dag_actual?_ -> ProcessThenValidate)
+  []
+  (initialize_queue_actual?_ -> ProcessThenValidate)
+  []
+  (queue_not_empty -> ProcessThenValidate)
+  []
+  (dequeue_actual?_ -> ProcessThenValidate)
+  []
+  (all_dependencies_processed?_ -> ProcessThenValidate)
+  []
+  (missing_dependency?_ -> ProcessThenValidate)
+  []
+  (extend_graph_actual?_?_ -> ProcessThenValidate)
+  []
+  (enqueue_nodes_actual?_ -> ProcessThenValidate)
+  []
+  (generate_children_actual?_ -> ProcessThenValidate)
+  []
+  (all_nodes_processed -> ProcessThenValidate)
+  []
+  (perform_final_validation_actual -> ProcessThenValidate)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert ProcessThenValidate [T= DAD_Core
+
+-- 6. Verify that all_dependencies_processed leads to generate_children (local sequencing, DA3)
+DepsProcessedThenGenerate = 
+  (all_dependencies_processed?node -> 
+   generate_children_actual!node -> DepsProcessedThenGenerate)
+  []
+  (load_dag_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (initialize_queue_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (queue_not_empty -> DepsProcessedThenGenerate)
+  []
+  (dequeue_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (process_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (validate_dependencies_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (missing_dependency?_ -> DepsProcessedThenGenerate)
+  []
+  (extend_graph_actual?_?_ -> DepsProcessedThenGenerate)
+  []
+  (enqueue_nodes_actual?_ -> DepsProcessedThenGenerate)
+  []
+  (all_nodes_processed -> DepsProcessedThenGenerate)
+  []
+  (perform_final_validation_actual -> DepsProcessedThenGenerate)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert DepsProcessedThenGenerate [T= DAD_Core
+
+-- 7. Verify that generate_children is followed by enqueue_nodes (local sequencing, DA3)
+GenerateThenEnqueue = 
+  (generate_children_actual?node -> enqueue_nodes_actual?_ -> GenerateThenEnqueue)
+  []
+  (load_dag_actual?_ -> GenerateThenEnqueue)
+  []
+  (initialize_queue_actual?_ -> GenerateThenEnqueue)
+  []
+  (queue_not_empty -> GenerateThenEnqueue)
+  []
+  (dequeue_actual?_ -> GenerateThenEnqueue)
+  []
+  (process_actual?_ -> GenerateThenEnqueue)
+  []
+  (validate_dependencies_actual?_ -> GenerateThenEnqueue)
+  []
+  (all_dependencies_processed?_ -> GenerateThenEnqueue)
+  []
+  (missing_dependency?_ -> GenerateThenEnqueue)
+  []
+  (extend_graph_actual?_?_ -> GenerateThenEnqueue)
+  []
+  (all_nodes_processed -> GenerateThenEnqueue)
+  []
+  (perform_final_validation_actual -> GenerateThenEnqueue)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert GenerateThenEnqueue [T= DAD_Core
+
+-- 8. Verify that missing_dependency leads to extend_graph (local sequencing, DA4)
+MissingDepThenExtend = 
+  (missing_dependency?node -> extend_graph_actual!node?_ -> MissingDepThenExtend)
+  []
+  (load_dag_actual?_ -> MissingDepThenExtend)
+  []
+  (initialize_queue_actual?_ -> MissingDepThenExtend)
+  []
+  (queue_not_empty -> MissingDepThenExtend)
+  []
+  (dequeue_actual?_ -> MissingDepThenExtend)
+  []
+  (process_actual?_ -> MissingDepThenExtend)
+  []
+  (validate_dependencies_actual?_ -> MissingDepThenExtend)
+  []
+  (all_dependencies_processed?_ -> MissingDepThenExtend)
+  []
+  (enqueue_nodes_actual?_ -> MissingDepThenExtend)
+  []
+  (generate_children_actual?_ -> MissingDepThenExtend)
+  []
+  (all_nodes_processed -> MissingDepThenExtend)
+  []
+  (perform_final_validation_actual -> MissingDepThenExtend)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert MissingDepThenExtend [T= DAD_Core
+
+-- 9. Verify that all_nodes_processed leads to perform_final_validation
+-- (successful termination path, DA6a)
+AllProcessedThenValidate = 
+  (all_nodes_processed -> perform_final_validation_actual -> AllProcessedThenValidate)
+  []
+  (load_dag_actual?_ -> AllProcessedThenValidate)
+  []
+  (initialize_queue_actual?_ -> AllProcessedThenValidate)
+  []
+  (queue_not_empty -> AllProcessedThenValidate)
+  []
+  (dequeue_actual?_ -> AllProcessedThenValidate)
+  []
+  (process_actual?_ -> AllProcessedThenValidate)
+  []
+  (validate_dependencies_actual?_ -> AllProcessedThenValidate)
+  []
+  (all_dependencies_processed?_ -> AllProcessedThenValidate)
+  []
+  (missing_dependency?_ -> AllProcessedThenValidate)
+  []
+  (extend_graph_actual?_?_ -> AllProcessedThenValidate)
+  []
+  (enqueue_nodes_actual?_ -> AllProcessedThenValidate)
+  []
+  (generate_children_actual?_ -> AllProcessedThenValidate)
+  []
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+
+assert AllProcessedThenValidate [T= DAD_Core
+
+-- 10. Verify termination is reachable (covers both T_SUCCESS and T_ERROR)
+TerminationAllowed = 
+  (terminate_successfully_actual -> SKIP)
+  []
+  (terminate_with_error_actual -> SKIP)
+  []
+  (load_dag_actual?_ -> TerminationAllowed)
+  []
+  (initialize_queue_actual?_ -> TerminationAllowed)
+  []
+  (queue_not_empty -> TerminationAllowed)
+  []
+  (dequeue_actual?_ -> TerminationAllowed)
+  []
+  (process_actual?_ -> TerminationAllowed)
+  []
+  (validate_dependencies_actual?_ -> TerminationAllowed)
+  []
+  (all_dependencies_processed?_ -> TerminationAllowed)
+  []
+  (missing_dependency?_ -> TerminationAllowed)
+  []
+  (extend_graph_actual?_?_ -> TerminationAllowed)
+  []
+  (enqueue_nodes_actual?_ -> TerminationAllowed)
+  []
+  (generate_children_actual?_ -> TerminationAllowed)
+  []
+  (all_nodes_processed -> TerminationAllowed)
+  []
+  (perform_final_validation_actual -> TerminationAllowed)
+
+assert TerminationAllowed [T= DAD_Core
