@@ -3,34 +3,30 @@ stateDiagram-v2
 
     [*] --> S0
 
-    %% Initialization
-    S0 --> S1 : CD1 - load_graph_actual → initialize_dependencies_actual
+    state "S0<br/>Initialization" as S0
+    state "S1<br/>Development Processing" as S1
+    state "S2<br/>Validation" as S2
+    state "S3<br/>Refinement" as S3
+    state "T<br/>Termination" as T
 
-    %% Node Processing
-    S1 --> S1 : CD2 - process_node_actual
-    S1 --> S2 : CD3a - process_node_actual → test_failed_actual
-    S1 --> S2 : CD3b - process_node_actual → feedback_triggered_actual
-    S1 --> S3 : CD5 - all_components_written_actual → validate_increment_actual → validation_confirmed_actual
+    S0 --> S1 : CD1 / load graph,<br/>initialize dependencies
 
-    %% Refinement
-    S2 --> S1 : CD4a - refine_component_actual → refinement_confirmed_actual → refinement_complete_actual
-    S2 --> S2 : CD4c - refine_component_actual → refinement_confirmed_actual → refinement_failed_actual (r+1 < Rmax)
-    S2 --> S0 : CD4b - refine_component_actual → refinement_confirmed_actual → refinement_failed_actual → terminate_with_error_actual (r+1 ≥ Rmax)
+    S1 --> S2 : CD5 [all components written]<br/>/ validate increment
 
-    %% Validation
-    S3 --> S2 : CD6a - validation_failed_actual → identify_flaw_actual
-    S3 --> S2 : CD6b - feedback_received_actual → identify_flaw_actual
-    S3 --> S1 : CD8 - advance_milestone_actual (k < L_max)
-    S3 --> S0 : CD7 - final_development_actual → terminate_successfully_actual (k = L_max)
+    S2 --> S3 : CD6a [validation failed]<br/>/ identify flaw
+    S2 --> S3 : CD6b [feedback received]<br/>/ identify flaw
 
-    %% State labels with parameters
-    state "S0" as S0
-    state "S1(k, n1..n5)" as S1
-    state "S2(c, k, n1..n5, r)" as S2
-    state "S3(k, n1..n5)" as S3
+    S1 --> S3 : CD3a [test failed]<br/>/ trigger refinement
+    S1 --> S3 : CD3b [feedback triggered]<br/>/ trigger refinement
 
-    note left of S0
-        Cyclic restart pattern:
-        No terminal state. CD4b and CD7
-        return to S0 for continuous execution.
-    end note
+    S3 --> S1 : CD4a [refinement succeeds]<br/>/ resume processing
+
+    S3 --> S3 : CD4c [retry allowed]<br/>/ retry refinement
+
+    S3 --> T : CD4b [retry limit reached]<br/>/ terminate with error
+
+    S1 --> S1 : CD8 [k < L_max]<br/>/ advance milestone
+
+    S1 --> T : CD7 [k = L_max]<br/>/ final development,<br/>terminate successfully
+
+    T --> [*]
