@@ -1,46 +1,46 @@
 stateDiagram-v2
+    direction TB
 
-    %% States
-    state "S0: Initialization" as S0
-    state "S1(i): Forward Processing" as S1
-    state "S2(i): Primary Validation" as S2
-    state "S3(i): Depth Progression" as S3
-    state "S1_ref(j,i): Refinement Processing" as S1_R
-    state "S2_ref(j,i): Refinement Validation" as S2_R
-    state "S3_rdep(j,i): Refinement Depth Resolution" as S3_R
-    state "S4(i): Top‑Down Completion" as S4
-    state "S5: Failure Termination" as S5
-    state "T: Successful Termination" as T
-
-    %% Transitions
     [*] --> S0
-    S0 --> S1 : PB1
 
-    S1 --> S2 : PB2   / nodes remain unvalidated
-    S1 --> S3 : PB2a  / all nodes validated
+    state "S0<br/>Initialization" as S0
+    state "S1_init<br/>Forward Pattern Processing" as S1_init
+    state "S2_val<br/>Primary Pattern Validation" as S2_val
+    state "S3_depth<br/>Depth Progression" as S3_depth
+    state "S1_ref<br/>Refinement Pattern Processing" as S1_ref
+    state "S2_ref<br/>Refinement Pattern Validation" as S2_ref
+    state "S3_rdep<br/>Refinement Depth Resolution" as S3_rdep
+    state "S4_tdown<br/>Top-Down Completion" as S4_tdown
+    state "S5<br/>Error Termination" as S5
+    state "T<br/>Successful Termination" as T
 
-    S2 --> S1_R : PB3   / fail, trace origin j, attempts remain
-    S2 --> S3   : PB4   / success
-    S2 --> S5   : PB3c  / fail, no trace or attempts exhausted
+    S0 --> S1_init : PB1 / initialize workflow
 
-    S1_R --> S5   : PB9   / attempts exhausted before processing
-    S1_R --> S2_R : PB3a  / nodes remain unvalidated
-    S1_R --> S3_R : PB3b  / all nodes validated
+    S1_init --> S2_val : PB2 [nodes remain unvalidated]<br/>/ process forward
+    S1_init --> S3_depth : PB2a [all nodes validated]<br/>/ enter depth progression
 
-    S2_R --> S3_R : PB3a1 / success
-    S2_R --> S1_R : PB3a2 / retry
-    S2_R --> S5   : PB3a3 / fail, attempts exhausted
+    S2_val --> S1_ref : PB3 [validation failed and trace exists and attempts remain]<br/>/ enter refinement
+    S2_val --> S3_depth : PB4 [validation succeeded]<br/>/ continue progression
+    S2_val --> S5 : PB3c [validation failed and no trace or attempts exhausted]<br/>/ terminate with error
 
-    S3_R --> S1_R : PB5   / j < i (continue deeper refinement)
-    S3_R --> S3   : PB6   / j = i (return to forward progression)
+    S1_ref --> S5 : PB9 [attempts exhausted before processing]<br/>/ terminate with error
+    S1_ref --> S2_ref : PB3a [nodes remain unvalidated]<br/>/ validate refinement node
+    S1_ref --> S3_rdep : PB3b [all nodes validated]<br/>/ resolve refinement depth
 
-    S3 --> S1     : PB4a  / descend to next pattern level
-    S3 --> S4     : PB4b  / no children or final level → completion
+    S2_ref --> S3_rdep : PB3a1 [validation succeeded]<br/>/ resolve refinement
+    S2_ref --> S1_ref : PB3a2 [retry allowed]<br/>/ retry refinement
+    S2_ref --> S5 : PB3a3 [retry exhausted]<br/>/ terminate with error
 
-    S4 --> S4     : PB7   / advance to next completion level
-    S4 --> S1_R   : PB7a  / unprocessed nodes → refinement
-    S4 --> S5     : PB7b  / unprocessed nodes, no trace or attempts exhausted
-    S4 --> T      : PB8   / all patterns finalized
+    S3_rdep --> S1_ref : PB5 [j < i]<br/>/ continue deeper refinement
+    S3_rdep --> S3_depth : PB6 [j = i]<br/>/ return to forward progression
+
+    S3_depth --> S1_init : PB4a [next pattern level exists]<br/>/ descend to next pattern
+    S3_depth --> S4_tdown : PB4b [no children or final level]<br/>/ begin completion
+
+    S4_tdown --> S4_tdown : PB7 [completion level remains]<br/>/ continue completion
+    S4_tdown --> S1_ref : PB7a [unprocessed nodes and trace exists]<br/>/ enter refinement
+    S4_tdown --> S5 : PB7b [unprocessed nodes and no trace or attempts exhausted]<br/>/ terminate with error
+    S4_tdown --> T : PB8 [all patterns finalized]<br/>/ terminate successfully
 
     S5 --> [*]
     T --> [*]
