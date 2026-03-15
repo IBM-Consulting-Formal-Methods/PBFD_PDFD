@@ -1,59 +1,61 @@
 stateDiagram-v2
+    direction TB
+
     [*] --> S0
 
+    %% Labels
+    state "S0" as S0
+    state "S1_init" as S1_init
+    state "S1_ref" as S1_ref
+    state "S2_val" as S2_val
+    state "S2_ref" as S2_ref
+    state "S3_res" as S3_res
+    state "S3_bup" as S3_bup
+    state "S4_tdown" as S4_tdown
+    state "S5" as S5
+    state "T" as T
+
     %% Initialization
-    S0 --> S1_init : PD1 (process_level!root)
+    S0 --> S1_init : PD1 <br/>[start]<br/>/ process <br/>level root
 
     %% Forward Processing
-    S1_init --> S2_val : PD2 (process!i, validate!i)
-    S1_init --> S5 : PD8a (refinement_exhausted?i)
+    S1_init --> S2_val : PD2 <br/> [node processed]<br/>/ validate <br/>current node
+    S1_init --> S5 : PD8a <br/>[refinement exhausted]<br/>/ terminate <br/>with error
 
     %% Primary Validation
-    S2_val --> S1_init_next : PD2b (threshold_met & has_children)
-    S2_val --> S3_bup : PD4 (threshold_met & no_children)
-    S2_val --> S5 : PD2a-1 (not_met & no_trace)
-    S2_val --> S1_ref : PD2a-2 (not_met & refine_avail)
-    S2_val --> S5 : PD2a-3 (not_met & exhausted)
+    S2_val --> S1_init : PD2b <br/>[threshold met <br/>and has children]<br/>/ advance to <br/>next child
+    S2_val --> S3_bup : PD4 <br/>[threshold met <br/>and no children]<br/>/ begin <br/>bottom-up <br/>completion
+    S2_val --> S5 : PD2a-1 <br/>[threshold not met <br/>and no trace]<br/>/ terminate <br/>with error
+    S2_val --> S1_ref : PD2a-2 <br/>[threshold not met <br/>and refinement <br/>available]<br/>/ enter refinement
+    S2_val --> S5 : PD2a-3 <br/>[threshold not met <br/>and refinement <br/>exhausted]<br/>/ terminate <br/>with error
 
     %% Refinement Processing
-    S1_ref --> S2_ref : PD3 (process!j, validate!j)
-    S1_ref --> S5 : PD8b (refinement_exhausted?j)
+    S1_ref --> S2_ref : PD3 <br/>[refinement node <br/>processed]<br/>/ validate <br/>refinement node
+    S1_ref --> S5 : PD8b <br/>[refinement exhausted]<br/>/ terminate <br/>with error
 
     %% Refinement Validation
-    S2_ref --> S3_res : PD3-res (threshold_met?j)
-    S2_ref --> S5 : PD3c-1 (not_met & exhausted)
-    S2_ref --> S1_ref_new : PD3c-2 (not_met & refine_avail)
+    S2_ref --> S3_res : PD3-res <br/>[threshold met]<br/>/ resolve <br/>refinement
+    S2_ref --> S5 : PD3c-1 <br/>[threshold not met <br/>and exhausted]<br/>/ terminate <br/>with error
+    S2_ref --> S1_ref : PD3c-2 <br/>[threshold not met <br/>and refinement <br/>available]<br/>/ retry refinement
 
     %% Refinement Resolution
-    S3_res --> S1_ref_next : PD3a (j_lt_i)
-    S3_res --> S2_val_orig : PD3b (j_eq_i)
+    S3_res --> S1_ref : PD3a <br/>[j < i]<br/>/ continue deeper <br/>refinement
+    S3_res --> S2_val : PD3b <br/>[j = i]<br/>/ return to <br/>primary <br/>validation
 
-    %% Bottom-Up Completion (generic)
-    S3_bup --> S3_bup_prev : PD4a (all_val & not_root(i))
-    S3_bup --> S4_tdown : PD5 (all_val & is_root(i))
-    S3_bup --> S5 : PD4b-1 (not_all_val & no_trace)
-    S3_bup --> S1_ref : PD4b-2 (not_all_val & refine_avail)
-    S3_bup --> S5 : PD4b-3 (not_all_val & exhausted)
+    %% Bottom-Up Completion
+    S3_bup --> S3_bup : PD4a <br/>[all validated <br/>and not root]<br/>/ continue <br/>bottom-up
+    S3_bup --> S4_tdown : PD5 <br/>[all validated <br/>and is root]<br/>/ begin <br/>top-down <br/>completion
+    S3_bup --> S5 : PD4b-1 <br/>[not all validated <br/>and no trace]<br/>/ terminate <br/>with error
+    S3_bup --> S1_ref : PD4b-2 <br/>[not all validated <br/>and refinement <br/>available]<br/>/ enter refinement
+    S3_bup --> S5 : PD4b-3 <br/>[not all validated <br/>and exhausted]<br/>/ terminate <br/>with error
 
-    %% Top-Down Completion (generic)
-    S4_tdown --> S4_tdown_next : PD6 (all_val & not_leaf(i))
-    S4_tdown --> T : PD7 (all_val & is_leaf(i))
-    S4_tdown --> S1_ref : PD6a-1 (not_all_val & trace & avail)
-    S4_tdown --> S5 : PD6a-2 (not_all_val & trace & exhausted)
-    S4_tdown --> S5 : PD6b (not_all_val & no_trace)
+    %% Top-Down Completion
+    S4_tdown --> S4_tdown : PD6 <br/>[all validated <br/>and not leaf]<br/>/ continue <br/>top-down
+    S4_tdown --> T : PD7 <br/>[all validated <br/>and is leaf]<br/>/ terminate <br/>successfully
+    S4_tdown --> S1_ref : PD6a-1 <br/>[not all validated <br/>and trace <br/>exists <br/>and refinement <br/>available]<br/>/ enter refinement
+    S4_tdown --> S5 : PD6a-2 <br/>[not all validated <br/>and trace <br/>exists <br/>and exhausted]<br/>/ terminate <br/>with error
+    S4_tdown --> S5 : PD6b <br/>[not all validated <br/>and no trace]<br/>/ terminate <br/>with error
 
     %% Terminal
     S5 --> [*]
     T --> [*]
-
-    %% Labels
-    state "S0" as S0
-    state "S1_init(i)" as S1_init
-    state "S1_ref(j,i)" as S1_ref
-    state "S2_val(i)" as S2_val
-    state "S2_ref(j,i)" as S2_ref
-    state "S3_res(j,i)" as S3_res
-    state "S3_bup(i)" as S3_bup
-    state "S4_tdown(i)" as S4_tdown
-    state "S5" as S5
-    state "T" as T
