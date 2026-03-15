@@ -1,0 +1,27 @@
+flowchart TD
+
+    A[Initialization]
+    B[Forward Processing]
+    C[Validation]
+    D[Depth Progression]
+    F[Top-Down Completion]
+    G[Termination]
+    E[Refinement]
+
+    A --> B
+    B --> C
+
+    C -->|success| D
+    C -->|failure| E
+    C -->|unrecoverable| G
+
+    E -->|resolved| D
+    E -->|retry| E
+    E -->|attempts exhausted| G
+
+    D -->|next pattern| B
+    D -->|final level| F
+
+    F -->|continue completion| F
+    F -->|unresolved nodes| E
+    F -->|finished| G
