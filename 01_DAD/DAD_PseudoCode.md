@@ -1,5 +1,3 @@
-Algorithm A.x.x. Dependency-Aware Development (DAD)
-
 Procedure DAD(G: DAG, v1_root: Node)
 Input:
     G          -- directed acyclic graph
