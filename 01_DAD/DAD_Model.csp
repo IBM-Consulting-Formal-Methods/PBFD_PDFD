@@ -1,5 +1,6 @@
--- DAD Process Algebra (Aligned with Table 5: State Definitions
--- and Table 6: Formal state transitions and workflow operations)
+-- DAD Process Algebra
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.2.2–A.2.3 (non-semantic reference)
 -- Compatible with FDR 4.2.7
 -- DOCUMENTATION: Comments are updated to match the finalized DAD state
 -- semantics and transition rules.
@@ -84,13 +85,13 @@ Alphabet_DAD = {|
 -- === State Processes ===
 -- Track queue as a sequence and processed nodes as a set.
 
--- === S0: Initialization (Table 5: S0) ===
+-- === S0: Initialization (Table A.2.2: S0) ===
 -- Description:
 --   Load the DAG structure g_initial, initialize the processing queue
 --   with the root node v1_root, and begin execution with an empty
 --   processed-node set.
 --
--- DA1 (Table 6):
+-- DA1 (Table A.2.3):
 --   S0 -> S1(<v1_root>, {})
 --   Operation:
 --   load_dag_actual!g_initial ->
@@ -99,7 +100,7 @@ S0 = load_dag_actual!g_initial ->
      initialize_queue_actual!v1_root -> 
      S1(<v1_root>, {})
 
--- === S1: Node Processing (Table 5: S1) ===
+-- === S1: Node Processing (Table A.2.2: S1) ===
 -- Description:
 --   If the queue is non-empty, dequeue and process the next node and
 --   initiate dependency validation. If the queue becomes empty,
@@ -107,7 +108,7 @@ S0 = load_dag_actual!g_initial ->
 --   either to final validation and successful termination or to error
 --   termination.
 --
--- DA6a (Table 6):
+-- DA6a (Table A.2.3):
 --   S1(<>, processed) -> T_SUCCESS
 --   Condition:
 --   diff(allInitialNodes, processed) = {}
@@ -116,14 +117,14 @@ S0 = load_dag_actual!g_initial ->
 --   perform_final_validation_actual ->
 --   terminate_successfully_actual
 --
--- DA6b (Table 6):
+-- DA6b (Table A.2.3):
 --   S1(<>, processed) -> T_ERROR
 --   Condition:
 --   diff(allInitialNodes, processed) != {}
 --   Operation:
 --   terminate_with_error_actual
 --
--- DA2 (Table 6):
+-- DA2 (Table A.2.3):
 --   S1(<node>^restQueue, processed) ->
 --   S2ValidateOutcome(node, restQueue, union(processed, {node}))
 --   Operation:
@@ -156,14 +157,14 @@ S1(<node>^restQueue, processed) =
     validate_dependencies_actual!node ->      -- DA2
     S2ValidateOutcome(node, restQueue, union(processed, {node}))
 
--- === S2: Dependency Check (Table 5: S2) ===
+-- === S2: Dependency Check (Table A.2.2: S2) ===
 -- Description:
 --   Evaluate whether all dependencies of the current node are contained
 --   in the processed set. If satisfied, generate and enqueue the node's
 --   children; otherwise detect a missing dependency and trigger DAG
 --   extension.
 --
--- DA3 (Table 6):
+-- DA3 (Table A.2.3):
 --   S2ValidateOutcome(node, queue, processed) ->
 --   S1(queue ^ seq(diff(children(node), processed)), processed)
 --   Condition:
@@ -173,7 +174,7 @@ S1(<node>^restQueue, processed) =
 --   generate_children_actual!node ->
 --   enqueue_nodes_actual!children(node)
 --
--- DA4 (Table 6):
+-- DA4 (Table A.2.3):
 --   S2ValidateOutcome(node, queue, processed) ->
 --   S3ExtendCompletion(v_new_param, queue, processed)
 --   Condition:
@@ -195,13 +196,13 @@ S2ValidateOutcome(node, queue, processed) =
     extend_graph_actual!node!v_new_param ->   -- DA4
     S3ExtendCompletion(v_new_param, queue, processed)
 
--- === S3: Graph Extension (Table 5: S3) ===
+-- === S3: Graph Extension (Table A.2.2: S3) ===
 -- Description:
 --   Complete the DAG extension by introducing the prerequisite node
 --   v_new, enqueue the new node, and return to node processing while
 --   preserving the processed set.
 --
--- DA5 (Table 6):
+-- DA5 (Table A.2.3):
 --   S3ExtendCompletion(v_new, queue, processed) ->
 --   S1(<v_new> ^ queue, processed)
 --   Operation:
@@ -211,7 +212,7 @@ S3ExtendCompletion(v_new, queue, processed) =
   enqueue_nodes_actual!{v_new} ->
   S1(<v_new> ^ queue, processed)
 
--- === T: Termination States (Table 5: T) ===
+-- === T: Termination States (Table A.2.2: T) ===
 -- Conceptual termination states reached after final validation and
 -- successful completion (T_SUCCESS) or robustness termination when the
 -- queue becomes empty before all initial nodes are processed (T_ERROR).
