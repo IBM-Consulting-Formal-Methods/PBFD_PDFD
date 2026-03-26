@@ -1,0 +1,11 @@
+graph TD
+    N1[Node1 Root]-->|Dependency|N2[Node2]; N1-->|Dependency|N3[Node3]
+    N2-->|Dependency|N4[Node4]; N3-->|Dependency|N4
+    N4-->|Dependency|N5[Node5]
+
+ 	legend["DAD Principles:<br>- Acyclicity<br>- Hierarchy<br>- Scalability"]; legendCore[Core]:::core; legendExtended[Extended]:::extended
+
+    classDef core fill:#E1F5FE,stroke:#039BE5; 
+    classDef extended fill:#F0F4C3,stroke:#AFB42B; 
+    classDef legend fill:#FFFFFF,stroke:#BDBDBD
+    class N1,N2,N3,N4 core; class N5 extended; class legend legend
