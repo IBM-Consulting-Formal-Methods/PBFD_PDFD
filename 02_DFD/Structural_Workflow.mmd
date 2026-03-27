@@ -1,0 +1,63 @@
+graph TD
+    %% Tree Structure
+    C1((C₁)) --> C2_1((C₂¹))
+    C1 --> C2_2((C₂²))
+    C1 --> C2_3((C₂³))
+    C2_1 --> C3_1((C₃¹))
+    C2_2 --> C3_2((C₃²))
+    C2_3 --> C3_3((C₃³))
+    %% C3_3 and C3_4 are siblings of C2_3
+    C2_3 --> C3_4((C₃⁴)) 
+
+    %% Traversal Path with Backtracking and Sibling Processing
+    C1 -.->|"1: Process C₁"| C2_1
+    C2_1 -.->|"2: Process C₂¹"| C3_1
+    C3_1 -.->|"3: Backtrack to C₂¹"| C2_1
+    %% All children of C2_1 processed, backtrack
+    C2_1 -.->|"4: Backtrack to C₁"| C1 
+    %% Go to next sibling of C2_1
+    C1 -.->|"5: Process C₂²"| C2_2 
+    C2_2 -.->|"6: Process C₃²"| C3_2
+    C3_2 -.->|"7: Backtrack to C₂²"| C2_2
+    C2_2 -.->|"8: Backtrack to C₁"| C1
+    C1 -.->|"9: Process C₂³"| C2_3
+    C2_3 -.->|"10: Process C₃³"| C3_3
+    C3_3 -.->|"11: Backtrack to C₂³"| C2_3
+   %% Go to next sibling of C3_3 (under C2_3)
+    C2_3 -.->|"12: Process C₃⁴"| C3_4 
+    C3_4 -.->|"13: Backtrack to C₂³"| C2_3
+    C2_3 -.->|"14: Backtrack to C₁"| C1
+    %% explicit termination node
+    C1 -.->|"15: All nodes processed"| T((Terminate))
+
+    %% Legend with more distinct colors
+    subgraph Legend
+        note[Superscripts like ¹, ², ³ indicate ordering of sibling nodes]
+        L2[" "]:::legendNode
+        L2_text[Processed]
+        L3[" "]:::currentNode
+        L3_text[Current]
+        L4[" "]:::pendingNode
+        L4_text[Pending]
+    end
+
+    %% Connect legend elements
+    L2 --- L2_text
+    L3 --- L3_text
+    L4 --- L4_text
+
+    %% Styling with more distinct colors
+    classDef legendNode fill:#6495ED,stroke:#000,stroke-width:2px
+    classDef currentNode fill:#32CD32,stroke:#000,stroke-width:2px
+    classDef pendingNode fill:#FFF,stroke:#000,stroke-width:2px
+    classDef legendBox fill:#f9f9f9,stroke:#ccc,stroke-dasharray: 5 5
+
+    %% Color classes for tree nodes (adjust as needed for the visual representation of current state)
+    class C1 legendNode
+    class C2_1,C3_1 currentNode
+    class C2_2,C2_3,C3_2,C3_3,C3_4 pendingNode
+    class Legend legendBox
+
+    %% Style text nodes to be transparent
+    classDef textNode fill:transparent,stroke:transparent
+    class L2_text,L3_text,L4_text,note textNode
