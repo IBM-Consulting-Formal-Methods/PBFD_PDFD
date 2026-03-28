@@ -1,0 +1,26 @@
+graph TD  
+    A[Level 1: Root] --> B[Level 2: Node 1]  
+    A --> C[Level 2: Node 2]  
+    A --> D[Level 2: Node 3]  
+    B --> E[Level 3: Node 1.1]  
+    B --> F[Level 3: Node 1.2]  
+    C --> G[Level 3: Node 2.1]  
+    D --> H[Level 3: Node 3.1]  
+    
+    %% Legend components
+    legendProcessed[Processed]:::processed
+    legendCurrent[Current]:::current
+    legendPending[Pending]:::pending
+    
+    %% Traversal Order  
+    classDef processed fill:#99f,stroke:#333  
+    classDef current fill:#9f9,stroke:#333  
+    classDef pending fill:#fff,stroke:#333  
+    
+    %% Apply styling to nodes
+    class A processed
+    class B,C,D current
+    class E,F,G,H pending
+    
+    %% Style edges
+    linkStyle 0,1,2 stroke:#9f9,stroke-width:2px
