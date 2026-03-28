@@ -1,5 +1,6 @@
--- DFD Process Algebra (Aligned with Figure 5: Workflow,
--- Table 12: State Definitions, Table 13: Transition Rules)
+-- DFD Process Algebra 
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.3.2–A.3.3 (non-semantic reference)
 -- Compatible with FDR 4.2.7
 --
 -- Each state block corresponds to S0–S3 and T.
