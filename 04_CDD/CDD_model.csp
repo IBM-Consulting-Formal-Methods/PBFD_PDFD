@@ -2,9 +2,8 @@
 -- CDD CSP Specification 
 -- Cyclic Directed Development with Dependency-Aware Refinement
 -- ========================================================================
--- Updated comments aligned with:
---   Table 26 (State Semantics)
---   Table 27 (Formal Transition Rules CD1–CD8)
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.5.2–A.5.3 (non-semantic reference)
 --
 -- Workflow Phases:
 --   S0 = Initialization (CD1)
@@ -27,7 +26,7 @@ L_max = M3
 Rmax = 3  -- Maximum refinement attempts per node
 
 -- ========================================================================
--- Dependency Graph Definition (Table 26)
+-- Dependency Graph Definition (Table A.5.2)
 -- ========================================================================
 -- N1: no dependencies
 -- N2: depends on N1
