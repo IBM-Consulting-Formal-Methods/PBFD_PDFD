@@ -1,6 +1,6 @@
--- BFD Process Algebra (Verified and Cleaned for FDR 4.2.7)
--- Comments updated to align with Table 19 (State Definitions)
--- and Table 20 (Formal State Transitions and Workflow Operations)
+-- BFD Process Algebra 
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.4.2–A.4.3 (non-semantic reference)
 ------------------------------------------------------
 
 -- === Domain Declarations ===
@@ -62,27 +62,27 @@ Alphabet_BFD = {|
 
 ------------------------------------------------------
 -- === State Processes (Queue-based logic) ===
--- (Aligned with Table 19: State Definitions
---  and Table 20: Formal State Transitions)
+-- (Aligned with Table A.4.2: State Definitions
+--  and Table A.4.3: Formal State Transitions)
 ------------------------------------------------------
 
--- S0: Initialization (Ref: Table 19, State ID S0)
+-- S0: Initialization (Ref: Table A.4.2, State ID S0)
 -- Description: Load the tree structure, initialize the level queues
 --              with the root node, and set the current level to L.0
 --
--- BF1 (Table 20): S0 → S1(L.0, ⟨c_root⟩, ⟨⟩)
+-- BF1 (Table A.4.3): S0 → S1(L.0, ⟨c_root⟩, ⟨⟩)
 --   Operation: load_tree_actual!t_initial →
 --              initialize_level_queues_actual!c_root
 S0 = load_tree_actual!t_initial ->
       initialize_level_queues_actual!c_root ->
       S1(L.0, <c_root>, <>)
 
--- S1: Level Processing (Ref: Table 19, State ID S1)
+-- S1: Level Processing (Ref: Table A.4.2, State ID S1)
 -- Description: Dequeue and process nodes in the current level queue Q
 --              at level lv; enqueue child nodes into nextQ until Q
 --              becomes empty
 --
--- BF3 (Table 20):
+-- BF3 (Table A.4.3):
 --   Source: S1(lv, ⟨⟩, nextQ)
 --   Target: S2(lv, nextQ)
 --   Operation: get_level_queue_actual!lv →
@@ -90,7 +90,7 @@ S0 = load_tree_actual!t_initial ->
 --              validate_level_actual!lv
 --   Triggered when the current level queue is empty.
 --
--- BF2a (Table 20 - leaf node case):
+-- BF2a (Table A.4.3 - leaf node case):
 --   Source: S1(lv, ⟨node⟩^restQ, nextQ) where node has no children
 --   Target: S1(lv, restQ, nextQ)
 --   Operation: get_level_queue_actual!lv →
@@ -98,7 +98,7 @@ S0 = load_tree_actual!t_initial ->
 --              dequeue_actual!lv!node →
 --              process_actual!node
 --
--- BF2b (Table 20 - internal node case):
+-- BF2b (Table A.4.3 - internal node case):
 --   Source: S1(lv, ⟨node⟩^restQ, nextQ) where node has children
 --   Target: S1(lv, restQ, nextQ ⧺ seq(children(node)))
 --   Operation: get_level_queue_actual!lv →
@@ -127,7 +127,7 @@ S1(lv, <node>^restQ, nextQ) =
       append_new_queue_actual!nl ->
       EnqueueChildSeq(lv, restQ, nextQ, nl, seq(children(node)))
 
--- EnqueueChildSeq: Recursive helper for BF2b (Ref: Table 20)
+-- EnqueueChildSeq: Recursive helper for BF2b (Ref: Table A.4.3)
 -- This process implements the sequential enqueuing of children
 -- as specified in BF2b's operation:
 --   "for each child c in children(node): enqueue_child_actual!nextLevel(lv)!c"
@@ -139,7 +139,7 @@ S1(lv, <node>^restQ, nextQ) =
 --   enqueue_child_actual!nl!child →
 --   EnqueueChildSeq(..., childRest)
 --
--- Note: This process is *not* a state in Table 19.
+-- Note: This process is *not* a state in Table A.4.2.
 --       It is an internal helper to implement BF2b's child enumeration.
 EnqueueChildSeq(lv, restQ, nextQ, nl, <>) =
   S1(lv, restQ, nextQ)
@@ -148,12 +148,12 @@ EnqueueChildSeq(lv, restQ, nextQ, nl, <child>^childRest) =
   enqueue_child_actual!nl!child ->
   EnqueueChildSeq(lv, restQ, nextQ^<child>, nl, childRest)
 
--- S2: Level Validation (Ref: Table 19, State ID S2)
+-- S2: Level Validation (Ref: Table A.4.2, State ID S2)
 -- Description: Validate completion of level lv and determine whether
 --              to advance to the next level using nextQ or terminate
 --              if nextQ is empty
 --
--- BF5 (Table 20):
+-- BF5 (Table A.4.3):
 --   Source: S2(lv, ⟨⟩)
 --   Target: T (SKIP)
 --   Operation: level_validated!lv →
@@ -161,7 +161,7 @@ EnqueueChildSeq(lv, restQ, nextQ, nl, <child>^childRest) =
 --              terminate_successfully_actual
 --   nextQ empty → no further levels → terminate successfully.
 --
--- BF4 (Table 20):
+-- BF4 (Table A.4.3):
 --   Source: S2(lv, ⟨node⟩^restQ)
 --   Target: S1(nextLevel(lv), ⟨node⟩^restQ, ⟨⟩)
 --   Operation: level_validated!lv →
@@ -171,7 +171,7 @@ S2(lv, <>) =
   level_validated!lv ->
   no_more_levels!lv ->
   terminate_successfully_actual ->
-  SKIP  -- T: Termination (Ref: Table 19, State ID T)
+  SKIP  -- T: Termination (Ref: Table A.4.2, State ID T)
 
 S2(lv, <node>^restQ) =
   level_validated!lv ->
