@@ -1,7 +1,7 @@
 -- ========================
 -- PBFD Process Algebra (FDR 4.2.7 Compatible)
--- Fully integrated, assertion-packed version
--- Aligned with Table 40 (State Definitions) and Table A.7.1 (Transition Rules)
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.7.1–A.7.2 (non-semantic reference)
 -- ========================
 
 -- ========================
@@ -61,7 +61,7 @@ channel cond_not_all_processed : Levels
 -- ========================
 
 -- PB1: S0 -> S1_init(L1)
--- Table 40: S0 (Initialization)
+-- Table A.7.1: S0 (Initialization)
 -- System initialization: load tree and initialize refinement counters
 S0 =
   load_tree_actual ->
@@ -69,7 +69,7 @@ S0 =
   S1_InitialProcess(L1)
 
 -- PB2/PB2a: S1_init(i) -> S2_val(i) or S3_depth(i)
--- Table 40: S1_init(i) (Forward Pattern Processing)
+-- Table A.7.1: S1_init(i) (Forward Pattern Processing)
 -- Forward pattern processing with branching to validation or depth progression
 S1_InitialProcess(i) =
   process_pattern_actual!i ->
@@ -78,7 +78,7 @@ S1_InitialProcess(i) =
   )
 
 -- PB3/PB3c/PB4: S2_val(i) -> S3_depth(i), S1_ref(j,i), or S5
--- Table 40: S2_val(i) (Primary Pattern Validation)
+-- Table A.7.1: S2_val(i) (Primary Pattern Validation)
 -- Primary validation in forward processing context
 S2_ValidationInitial(i) =
   validate_pattern_actual!i ->
@@ -105,7 +105,7 @@ TryTraceOrigin_Initial(i) =
   )
 
 -- PB9/PB3a/PB3b: S1_ref(j,i) -> S5, S2_ref(j,i), or S3_rdep(j,i)
--- Table 40: S1_ref(j,i) (Refinement Pattern Processing)
+-- Table A.7.1: S1_ref(j,i) (Refinement Pattern Processing)
 -- Refinement pattern processing with exhaustion check
 S1_RefinementProcess(j,i_orig) =
   ( cond_ref_attempts_ge_Rmax?j -> S5                       -- PB9:  S1_ref(j,i) -> S5
@@ -117,7 +117,7 @@ S1_RefinementProcess(j,i_orig) =
   )
 
 -- PB3a1/PB3a2/PB3a3: S2_ref(j,i) -> S3_rdep(j,i), S1_ref(j,i), or S5
--- Table 40: S2_ref(j,i) (Refinement Pattern Validation)
+-- Table A.7.1: S2_ref(j,i) (Refinement Pattern Validation)
 -- Refinement validation with retry/exhaustion logic
 S2_ValidationRefinement(j,i_orig) =
   validate_refinement_pattern_actual!j ->
@@ -129,7 +129,7 @@ S2_ValidationRefinement(j,i_orig) =
   )
 
 -- PB4a/PB4b: S3_depth(i) -> S1_init(Next(i)) or S4_tdown(L1)
--- Table 40: S3_depth(i) (Depth Progression)
+-- Table A.7.1: S3_depth(i) (Depth Progression)
 -- Depth progression: resolve node implementation and select critical children
 S3_DepthProgression(i) =
   resolve_depth_actual!i ->
@@ -141,7 +141,7 @@ S3_DepthProgression(i) =
   )
 
 -- PB5/PB6: S3_rdep(j,i) -> S1_ref(Next(j),i) or S3_depth(i)
--- Table 40: S3_rdep(j,i) (Refinement Depth Resolution)
+-- Table A.7.1: S3_rdep(j,i) (Refinement Depth Resolution)
 -- Refinement depth resolution: continue deeper or restore original context
 S3_RefinementDepthResolution(j,i_orig) =
   resolve_refinement_depth_actual!j ->
@@ -150,7 +150,7 @@ S3_RefinementDepthResolution(j,i_orig) =
   )
 
 -- PB7/PB7a/PB7b/PB8: S4_tdown(i) -> S4_tdown(Next(i)), S1_ref(j,i), S5, or T
--- Table 40: S4_tdown(i) (Top-Down Completion)
+-- Table A.7.1: S4_tdown(i) (Top-Down Completion)
 -- Top-down completion phase: finalize unprocessed nodes
 S4(i) =
   finalize_pattern_actual!i ->
@@ -179,7 +179,7 @@ TryTraceOrigin_Completion(i) =
   )
 
 -- Terminal states
--- Table 40: S5 (Error Termination), T (Successful Termination)
+-- Table A.7.1: S5 (Error Termination), T (Successful Termination)
 S5 = terminate_failure_actual -> S5  -- Error termination
 T  = terminate_success_actual -> T   -- Successful termination
 
@@ -248,7 +248,7 @@ HostileSystem = HostileSystemSync \ ConditionalEvents
 
 -- ========================
 -- PBFD Assertions Block
--- FDR 4.2.7-compliant, aligned with Table 40 and Table A.7.1
+-- FDR 4.2.7-compliant, aligned with Table A.7.1 and Table A.7.2
 -- ========================
 
 -- 1. DEADLOCK FREEDOM (hidden protocol)
@@ -266,7 +266,7 @@ assert System :[divergence free]
 assert SystemSync :[divergence free]
 
 -- 4. LOCAL DEPTH PROGRESSION SAFETY
--- Table 40: S3_depth(i) must be deadlock-free
+-- Table A.7.1: S3_depth(i) must be deadlock-free
 assert S3_DepthProgression(L1) :[deadlock free]
 
 -- 5. CONDITION CONSISTENCY (legal env should not permit contradictions)
@@ -282,34 +282,34 @@ assert LegalCondEnv [T= NoContradictions
 assert HostileSystem :[deadlock free]
 
 -- 7. REFINEMENT PROCESS DEADLOCK FREEDOM
--- Table 40: S1_ref(j,i) must be deadlock-free
+-- Table A.7.1: S1_ref(j,i) must be deadlock-free
 assert S1_RefinementProcess(L1,L2) :[deadlock free]
 
 -- 8. VALIDATION PROCESS DEADLOCK FREEDOM
--- Table 40: S2_val(i) must be deadlock-free
+-- Table A.7.1: S2_val(i) must be deadlock-free
 assert S2_ValidationInitial(L1) :[deadlock free]
 
 -- 9. REFINEMENT VALIDATION DEADLOCK FREEDOM
--- Table 40: S2_ref(j,i) must be deadlock-free
+-- Table A.7.1: S2_ref(j,i) must be deadlock-free
 assert S2_ValidationRefinement(L1,L2) :[deadlock free]
 
 -- 10. COMPLETION DEADLOCK FREEDOM
--- Table 40: S4_tdown(i) must be deadlock-free at all levels
+-- Table A.7.1: S4_tdown(i) must be deadlock-free at all levels
 assert S4(L1) :[deadlock free]
 assert S4(L2) :[deadlock free]
 
 -- 11. ERROR STATE PROPERTIES
--- Table 40: S5 must be deadlock-free and divergence-free
+-- Table A.7.1: S5 must be deadlock-free and divergence-free
 assert S5 :[deadlock free]
 assert S5 :[divergence free]
 
 -- 12. TERMINATION STATE PROPERTIES
--- Table 40: T must be deadlock-free and divergence-free
+-- Table A.7.1: T must be deadlock-free and divergence-free
 assert T :[deadlock free]
 assert T :[divergence free]
 
 -- 13. REFINEMENT DEPTH RESOLUTION DEADLOCK FREEDOM
--- Table 40: S3_rdep(j,i) must be deadlock-free
+-- Table A.7.1: S3_rdep(j,i) must be deadlock-free
 assert S3_RefinementDepthResolution(L1,L2) :[deadlock free]
 
 -- 14. HOSTILE SYSTEM SYNC DEADLOCK FREEDOM
@@ -317,40 +317,40 @@ assert S3_RefinementDepthResolution(L1,L2) :[deadlock free]
 assert HostileSystemSync :[deadlock free]
 
 -- 15. ALL LEVEL INITIAL PROCESSING DEADLOCK FREEDOM
--- Table 40: S1_init(i) at all levels
+-- Table A.7.1: S1_init(i) at all levels
 assert S1_InitialProcess(L2) :[deadlock free]
 assert S1_InitialProcess(L3) :[deadlock free]
 
 -- 16. ALL LEVEL REFINEMENT PROCESSING DEADLOCK FREEDOM
--- Table 40: S1_ref(j,i) with various parameter combinations
+-- Table A.7.1: S1_ref(j,i) with various parameter combinations
 assert S1_RefinementProcess(L2,L3) :[deadlock free]
 assert S1_RefinementProcess(L3,L3) :[deadlock free]
 
 -- 17. ALL LEVEL VALIDATION DEADLOCK FREEDOM
--- Table 40: S2_val(i) at all levels
+-- Table A.7.1: S2_val(i) at all levels
 assert S2_ValidationInitial(L2) :[deadlock free]
 assert S2_ValidationInitial(L3) :[deadlock free]
 
 -- 18. ALL LEVEL REFINEMENT VALIDATION DEADLOCK FREEDOM
--- Table 40: S2_ref(j,i) with various parameter combinations
+-- Table A.7.1: S2_ref(j,i) with various parameter combinations
 assert S2_ValidationRefinement(L2,L3) :[deadlock free]
 assert S2_ValidationRefinement(L3,L3) :[deadlock free]
 
 -- 19. ALL LEVEL DEPTH PROGRESSION DEADLOCK FREEDOM
--- Table 40: S3_depth(i) at all levels
+-- Table A.7.1: S3_depth(i) at all levels
 assert S3_DepthProgression(L2) :[deadlock free]
 assert S3_DepthProgression(L3) :[deadlock free]
 
 -- 20. ALL LEVEL REFINEMENT DEPTH RESOLUTION DEADLOCK FREEDOM
--- Table 40: S3_rdep(j,i) with various parameter combinations
+-- Table A.7.1: S3_rdep(j,i) with various parameter combinations
 assert S3_RefinementDepthResolution(L1,L3) :[deadlock free]
 assert S3_RefinementDepthResolution(L2,L2) :[deadlock free]
 assert S3_RefinementDepthResolution(L2,L3) :[deadlock free]
 
 -- 21. COMPLETION PHASE COMPLETENESS
--- Table 40: S4_tdown(L3) final level completion
+-- Table A.7.1: S4_tdown(L3) final level completion
 assert S4(L3) :[deadlock free]
 
 -- End of PBFD Assertions Block
--- Total: 21 assertion groups covering all states from Table 40
--- and all transitions from Table A.7.1
+-- Total: 21 assertion groups covering all states from Table A.7.1
+-- and all transitions from Table A.7.2
