@@ -1,14 +1,14 @@
 -- ========================================================
--- PDFD CSP Specification (Final Mapped Version)
--- Optimized for TOSEM/Formal Verification
--- Aligned with Corrected Rule Table A.6.1
+-- PDFD CSP Specification 
+-- Traceability: Corresponds to the state definitions and transition rules
+-- summarized in Tables A.6.1–A.6.2 (non-semantic reference)
 -- ========================================================
 
 -- Architectural Constants
 datatype Levels = L1 | L2 | L3 | L4 | L5
 Rmax = 3
 
--- Level Advancement Functions (Fixed Syntax)
+-- Level Advancement Functions 
 Next(L1) = L2
 Next(L2) = L3
 Next(L3) = L4
