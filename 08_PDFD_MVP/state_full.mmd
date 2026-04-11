@@ -1,0 +1,52 @@
+stateDiagram-v2
+    direction TB
+
+    [*] --> S1
+    state S1: Process & Validate Level 1
+    S1 --> S2: PDFD2 - Root Validated
+    state S2: Process & Validate Level 2
+    S2 --> S3: PDFD3 - Level 2 Validated
+    
+    state S3: Process & Validate Level 3
+    S3 --> S4: PDFD6 - Level 3 Validated
+    S3 --> S2_R1: PDFD4 - Validation Failed
+    S3 --> S_ERROR: PDFD20 - attempts≥60
+    
+    state S2_R1: Refine Levels 2-3
+    S2_R1 --> S3: PDFD5 - Refinement Validated
+    S2_R1 --> S_ERROR: PDFD19 - Failed & attempts≥60
+    
+    state S4: Process & Validate Level 4
+    S4 --> S5: PDFD9 - Level 4 Validated
+    S4 --> S2_R2: PDFD7 - Validation Failed
+    S4 --> S_ERROR: PDFD20 - attempts≥60
+    
+    state S2_R2: Refine Levels 2-4
+    S2_R2 --> S4: PDFD8 - Refinement Validated
+    S2_R2 --> S_ERROR: PDFD19 - Failed & attempts≥60
+    
+    state S5: Process & Validate Level 5
+    S5 --> S6: PDFD12 - Level 5 Validated
+    S5 --> S2_R3: PDFD10 - Validation Failed
+    S5 --> S_ERROR: PDFD20 - attempts≥60
+    
+    state S2_R3: Refine Levels 2-5
+    S2_R3 --> S5: PDFD11 - Refinement Validated
+    S2_R3 --> S_ERROR: PDFD19 - Failed & attempts≥60
+    
+    state S6: Process & Validate Level 6
+    S6 --> S7: PDFD13 - Level 6 Validated
+    
+    state S7: Finalize Level 5
+    S7 --> S8: PDFD14 - Subtree Validated
+    state S8: Finalize Level 4
+    S8 --> S9: PDFD15 - Subtree Validated
+    state S9: Finalize Level 3
+    S9 --> S10: PDFD16 - Subtree Validated
+    state S10: Finalize Level 2
+    S10 --> S11: PDFD17 - Subtree Validated
+    state S11: Finalize Root
+    S11 --> [*]: PDFD18 - Root Finalized
+    
+    state S_ERROR: Terminate on Failure
+    S_ERROR --> [*]
