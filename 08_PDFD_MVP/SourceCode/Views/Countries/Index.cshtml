@@ -1,0 +1,52 @@
+﻿@using VisitorLog_PDFD.ViewModels
+@model IEnumerable<CountryViewModel>
+
+@{
+    ViewBag.Title = "Select Countries";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h1 class="text-center">Select Countries</h1>
+    @using (Html.BeginForm("Index", "Countries", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        @foreach (var group in Model.GroupBy(m => m.ContinentName))
+        {
+            <h4 class="mt-4">@group.Key</h4> <!-- Display the continent name -->
+
+            <table class="table table-bordered table-hover mt-2">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 60%;">Country Name</th>
+                        <th style="width: 25%;">Name Type</th>
+                        <th style="width: 10%;">Select</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var country in group.Select((item, index) => new { Item = item, Index = index + 1 }))
+                    {
+                        <tr>
+                            <td>@country.Index</td>
+                            <td>@country.Item.CountryName</td>
+                            <td>@country.Item.NameTypeName</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input"
+                                       id="country-@country.Item.CountryId"
+                                       name="selectedCountries[@country.Item.SelectedContinentId][]"
+                                       value="@country.Item.CountryId"
+                                @(country.Item.IsSelected ? "checked" : "") />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="text-center mt-3">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    }
+</div>

@@ -1,0 +1,50 @@
+﻿@model IEnumerable<VisitorLog_PDFD.ViewModels.CityViewModel>
+
+@{
+    ViewBag.Title = "Select Cities";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h1 class="text-center">Select Cities</h1>
+    @using (Html.BeginForm("Index", "Cities", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <table class="table table-bordered table-hover mt-4">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 40%;">City Name</th>
+                    <th style="width: 15%;">Select</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in Model.GroupBy(m => m.CountyName))
+                {
+                    <tr class="table-secondary">
+                        <td colspan="4"><strong>@group.Key</strong></td> <!-- County name as a section header -->
+                    </tr>
+                    @foreach (var city in group.Select((item, index) => new { Item = item, Index = index + 1 }))
+                    {
+                        <tr>
+                            <td>@city.Index</td>
+                            <td>@city.Item.CityName - @city.Item.NameTypeName</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input"
+                                       id="city-@city.Item.CityId"
+                                       name="selectedCities[@city.Item.SelectedCountyId]"
+                                       value="@city.Item.CityId"
+                                @(city.Item.IsSelected ? "checked" : "") />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    }
+</div>

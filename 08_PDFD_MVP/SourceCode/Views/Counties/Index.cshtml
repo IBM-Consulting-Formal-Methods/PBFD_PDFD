@@ -1,0 +1,50 @@
+﻿@model IEnumerable<VisitorLog_PDFD.ViewModels.CountyViewModel>
+
+@{
+    ViewBag.Title = "Select Counties";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-5">
+    <h1 class="text-center">Select Counties</h1>
+    @using (Html.BeginForm("Index", "Counties", FormMethod.Post))
+    {
+        @Html.AntiForgeryToken()
+
+        <table class="table table-bordered table-hover mt-4">
+            <thead class="thead-light">
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 40%;">County Name</th>
+                    <th style="width: 15%;">Select</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in Model.GroupBy(m => m.StateName))
+                {
+                    <tr class="table-secondary">
+                        <td colspan="4"><strong>@group.Key</strong></td> <!-- State name as a section header -->
+                    </tr>
+                    @foreach (var county in group.Select((item, index) => new { Item = item, Index = index + 1 }))
+                    {
+                        <tr>
+                            <td>@county.Index</td>
+                            <td>@county.Item.CountyName - @county.Item.NameTypeName</td>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input"
+                                       id="county-@county.Item.CountyId"
+                                       name="selectedCounties[@county.Item.SelectedStateId]"
+                                       value="@county.Item.CountyId"
+                                @(county.Item.IsSelected ? "checked" : "") />
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    }
+</div>
