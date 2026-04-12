@@ -1,52 +1,62 @@
 stateDiagram-v2
     direction TB
-
     [*] --> S1
-    state S1: Process & Validate Level 1
+    state S1: Process & Validate Level 1 (Root)
     S1 --> S2: PDFD2 - Root Validated
-    state S2: Process & Validate Level 2
-    S2 --> S3: PDFD3 - Level 2 Validated
-    
-    state S3: Process & Validate Level 3
-    S3 --> S4: PDFD6 - Level 3 Validated
-    S3 --> S2_R1: PDFD4 - Validation Failed
-    S3 --> S_ERROR: PDFD20 - attempts≥60
-    
-    state S2_R1: Refine Levels 2-3
-    S2_R1 --> S3: PDFD5 - Refinement Validated
-    S2_R1 --> S_ERROR: PDFD19 - Failed & attempts≥60
-    
-    state S4: Process & Validate Level 4
-    S4 --> S5: PDFD9 - Level 4 Validated
-    S4 --> S2_R2: PDFD7 - Validation Failed
-    S4 --> S_ERROR: PDFD20 - attempts≥60
-    
-    state S2_R2: Refine Levels 2-4
-    S2_R2 --> S4: PDFD8 - Refinement Validated
-    S2_R2 --> S_ERROR: PDFD19 - Failed & attempts≥60
-    
-    state S5: Process & Validate Level 5
-    S5 --> S6: PDFD12 - Level 5 Validated
-    S5 --> S2_R3: PDFD10 - Validation Failed
-    S5 --> S_ERROR: PDFD20 - attempts≥60
-    
-    state S2_R3: Refine Levels 2-5
-    S2_R3 --> S5: PDFD11 - Refinement Validated
-    S2_R3 --> S_ERROR: PDFD19 - Failed & attempts≥60
-    
-    state S6: Process & Validate Level 6
-    S6 --> S7: PDFD13 - Level 6 Validated
-    
-    state S7: Finalize Level 5
-    S7 --> S8: PDFD14 - Subtree Validated
-    state S8: Finalize Level 4
-    S8 --> S9: PDFD15 - Subtree Validated
-    state S9: Finalize Level 3
-    S9 --> S10: PDFD16 - Subtree Validated
-    state S10: Finalize Level 2
-    S10 --> S11: PDFD17 - Subtree Validated
-    state S11: Finalize Root
-    S11 --> [*]: PDFD18 - Root Finalized
-    
-    state S_ERROR: Terminate on Failure
+
+    state S2: Process & Validate Level 2 (Continent)
+    S2 --> S3: PDFD3 - Continent Validated
+
+    state S3: Process & Validate Level 3 (Country)
+    S3 --> S4: PDFD8 - Country Validated
+    S3 --> S2_R1: PDFD4 - Country Validation Failed
+    S3 --> S_ERROR: PDFD27 - Refinement Exhausted
+
+    state S2_R1: Refine Levels 2-3 (Continent anchor. Country failure)
+    S2_R1 --> S3: PDFD7 - Refinement Validated. Return to Country
+    S2_R1 --> S_ERROR: PDFD26 - Refinement Exhausted at Continent
+
+    state S4: Process & Validate Level 4 (State)
+    S4 --> S5: PDFD13 - State Validated
+    S4 --> S2_R2: PDFD9 - State Validation Failed
+    S4 --> S_ERROR: PDFD27 - Refinement Exhausted
+
+    state S2_R2: Refine Levels 2-4 (Continent anchor. State failure)
+    S2_R2 --> S4: PDFD12 - Refinement Validated. Return to State
+    S2_R2 --> S_ERROR: PDFD26 - Refinement Exhausted at Continent
+
+    state S5: Process & Validate Level 5 (County)
+    S5 --> S6: PDFD18 - County Validated
+    S5 --> S2_R3: PDFD14 - County Validation Failed
+    S5 --> S_ERROR: PDFD27 - Refinement Exhausted
+
+    state S2_R3: Refine Levels 2-5 (Continent anchor. County failure)
+    S2_R3 --> S5: PDFD17 - Refinement Validated. Return to County
+    S2_R3 --> S_ERROR: PDFD26 - Refinement Exhausted at Continent
+
+    state S6: Process & Validate Level 6 (City)
+    S6 --> S7: PDFD19 - City Leaf Validated
+
+    state S7: Bottom-Up Completion Level 6 (City)
+    S7 --> S8: PDFD20 - City Subtree Validated
+
+    state S8: Bottom-Up Completion Level 5 (County)
+    S8 --> S9: PDFD21 - County Subtree Validated
+
+    state S9: Bottom-Up Completion Level 4 (State)
+    S9 --> S10: PDFD22 - State Subtree Validated
+
+    state S10: Bottom-Up Completion Level 3 (Country)
+    S10 --> S11: PDFD23 - Country Subtree Validated
+
+    state S11: Bottom-Up Completion Level 2 (Continent)
+    S11 --> S12: PDFD24 - Continent Subtree Validated
+
+    state S12: Top-Down Completion (Root)
+    S12 --> T: PDFD25 - All Nodes Finalized
+
+    state T: Success - All nodes P(n)=2
+    T --> [*]
+
+    state S_ERROR: Terminate on Failure (S5)
     S_ERROR --> [*]
