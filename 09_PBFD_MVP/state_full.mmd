@@ -1,60 +1,58 @@
 stateDiagram-v2
     direction TB
-    [*] --> S0
+    [*] --> S0: PBFD1 - Initialize
 
-    state S0: Process & Validate Level 1 (ContinentGrandparent)
-    S0 --> S1: PBFD2 - ContinentGrandparent Validated
+    state S0: Process & Validate Level 1\n(ContinentGrandparent)
+    state S1: Process & Validate Level 2\n(ContinentParent)
+    state S2: Process & Validate Level 3\n(Continent)
+    state S3: Process & Validate Level 4\n(Country)
+    state S4: Process & Validate Level 5\n(State)
 
-    state S1: Process & Validate Level 2 (ContinentParent)
-    S1 --> S2: PBFD3 - ContinentParent Validated
+    S0 --> S1: PBFD2 - Level 1 Validated
+    S1 --> S2: PBFD3 - Level 2 Validated
+    S2 --> S3: PBFD4 - Level 3 Validated
+    S3 --> S4: PBFD5 - Level 4 Validated
 
-    state S2: Process & Validate Level 3 (Continent)
-    S2 --> S3: PBFD4 - Continent Validated
-    S2 --> S5: PBFD6 - Continent Validation Failed
-    S2 --> S_ERROR: PBFD13 - No Trace Origin or Refinement Exhausted
+    S2 --> S5: PBFD6 - Validation Failed
+    S2 --> S_ERROR: PBFD13 - Unrecoverable Failure
 
     state S5 {
-        [*] --> S1_ref13
-        state S1_ref13: S1_ref(1,3) - Enter Refinement at ContinentGrandparent
-        state S2_ref13: S2_ref(1,3) - Refinement Validation at ContinentGrandparent
-        state S3_rdep13: S3_rdep(1,3) - Refinement Depth Resolution
-        S1_ref13 --> S2_ref13: PBFD7 - Begin Refinement Validation
-        S2_ref13 --> S3_rdep13: PBFD8 - ContinentGrandparent Pattern Validated
-        S3_rdep13 --> [*]: PBFD9 - Return to Continent. Resume Forward from S2
+        [*] --> R1
+
+        state R1: Refinement Scope [1,3]
+        state R2: Progressive Revalidation\n(j = 1 → 2 → 3)
+
+        R1 --> R2: PBFD7–PBFD8 - Revalidate Scope
+        R2 --> [*]: PBFD9 - Return to Level 3
     }
-    state S5: Refine Levels 1-3 (ContinentGrandparent anchor. Continent failure)
 
-    S5 --> S2: PBFD9 - Refinement Resolved. Resume Continent Validation
-    S5 --> S_ERROR: PBFD14 - Refinement Exhausted at ContinentGrandparent
+    state S5: Refinement\n(Continent-Level Failure)
 
-    state S3: Process & Validate Level 4 (Country)
-    S3 --> S4: PBFD5 - Country Validated
+    S5 --> S2: PBFD7–PBFD9 - Refinement Resolved
+    S5 --> S_ERROR: PBFD14 - Refinement Exhausted
 
-    state S4: Process & Validate Level 5 (State)
-    S4 --> S6: PBFD10 - State Validated. Begin Top-Down Completion
+    S4 --> S6: PBFD10 - Begin Completion
 
-    state S6: Top-Down Completion Level 1 (ContinentGrandparent)
-    S6 --> S7: PBFD11 - ContinentGrandparent Finalized
-    S6 --> S_ERROR: PBFD15 - Completion Phase Exhausted
+    state S6: Finalize Level 1\n(ContinentGrandparent)
+    state S7: Finalize Level 2\n(ContinentParent)
+    state S8: Finalize Level 3\n(Continent)
+    state S9: Finalize Level 4\n(Country)
+    state S10: Finalize Level 5\n(State)
 
-    state S7: Top-Down Completion Level 2 (ContinentParent)
-    S7 --> S8: PBFD11 - ContinentParent Finalized
-    S7 --> S_ERROR: PBFD15 - Completion Phase Exhausted
+    S6 --> S7: PBFD11 - Level 1 Finalized
+    S7 --> S8: PBFD11 - Level 2 Finalized
+    S8 --> S9: PBFD11 - Level 3 Finalized
+    S9 --> S10: PBFD11 - Level 4 Finalized
+    S10 --> T: PBFD12 - Level 5 Finalized
 
-    state S8: Top-Down Completion Level 3 (Continent)
-    S8 --> S9: PBFD11 - Continent Finalized
-    S8 --> S_ERROR: PBFD15 - Completion Phase Exhausted
+    S6 --> S_ERROR: PBFD15 - Completion Failed
+    S7 --> S_ERROR: PBFD15 - Completion Failed
+    S8 --> S_ERROR: PBFD15 - Completion Failed
+    S9 --> S_ERROR: PBFD15 - Completion Failed
+    S10 --> S_ERROR: PBFD15 - Completion Failed
 
-    state S9: Top-Down Completion Level 4 (Country)
-    S9 --> S10: PBFD11 - Country Finalized
-    S9 --> S_ERROR: PBFD15 - Completion Phase Exhausted
+    state T: Success\n(All nodes finalized)
+    state S_ERROR: Failure\n(Refinement exhausted / unrecoverable)
 
-    state S10: Top-Down Completion Level 5 (State)
-    S10 --> T: PBFD12 - State Finalized. Levels 6-7 Resolved via TLE Bitmask
-    S10 --> S_ERROR: PBFD15 - Completion Phase Exhausted
-
-    state T: Success - All nodes P(n)=2 including Levels 6-7 via TLE embedding
     T --> [*]
-
-    state S_ERROR: Terminate on Failure (S5)
     S_ERROR --> [*]
