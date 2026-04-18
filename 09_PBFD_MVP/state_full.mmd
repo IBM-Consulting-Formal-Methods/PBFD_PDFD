@@ -1,58 +1,68 @@
 stateDiagram-v2
     direction TB
-    [*] --> S0: PBFD1 - Initialize
 
-    state S0: Process & Validate Level 1\n(ContinentGrandparent)
-    state S1: Process & Validate Level 2\n(ContinentParent)
-    state S2: Process & Validate Level 3\n(Continent)
-    state S3: Process & Validate Level 4\n(Country)
-    state S4: Process & Validate Level 5\n(State)
+    %% =========================
+    %% Initialization (Grandparent)
+    %% =========================
+    [*] --> S0: PBFD1 — process ContinentGrandparent level
 
-    S0 --> S1: PBFD2 - Level 1 Validated
-    S1 --> S2: PBFD3 - Level 2 Validated
-    S2 --> S3: PBFD4 - Level 3 Validated
-    S3 --> S4: PBFD5 - Level 4 Validated
+    state S0: S0 — ContinentGrandparent processing (Level 1)
+    S0 --> S1: PBFD2 — process ContinentParent level
 
-    S2 --> S5: PBFD6 - Validation Failed
-    S2 --> S_ERROR: PBFD13 - Unrecoverable Failure
+    %% =========================
+    %% Parent Level
+    %% =========================
+    state S1: S1 — ContinentParent processing (Level 2)
+    S1 --> S2: PBFD3 — process Continent level
 
+    %% =========================
+    %% Continent Level
+    %% =========================
+    state S2: S2 — Continent processing (Level 3)
+
+    S2 --> S3: PBFD4 — process Country level
+    S3 --> S4: PBFD5 — process State level
+    S4 --> S6: PBFD10 — enter completion phase
+
+    %% Refinement trigger paths
+    S2 --> S5: PBFD6 — trigger refinement (Continent failure)
+    S2 --> S_ERROR: PBFD13 — validation failure
+
+    %% =========================
+    %% Refinement State S5 (FULLY RESTORED)
+    %% =========================
     state S5 {
+        direction TB
+
         [*] --> R1
 
-        state R1: Refinement Scope [1,3]
-        state R2: Progressive Revalidation\n(j = 1 → 2 → 3)
+        state R1: S1_ref(1,3) — refine ContinentGrandparent scope
+        state R2: S2_ref(1,3) — validate refined pattern
+        state R3: S3_rdep(1,3) — resolve refinement depth
+        state R4: exit refinement
 
-        R1 --> R2: PBFD7–PBFD8 - Revalidate Scope
-        R2 --> [*]: PBFD9 - Return to Level 3
+        R1 --> R2: PBFD7 — start refinement validation
+        R2 --> R3: PBFD8 — refinement validated
+        R3 --> R4: PBFD9 — return to Continent level
     }
 
-    state S5: Refinement\n(Continent-Level Failure)
+    S5 --> S2: PBFD9 — resume Continent processing
+    S5 --> S_ERROR: PBFD14 — refinement exhausted
 
-    S5 --> S2: PBFD7–PBFD9 - Refinement Resolved
-    S5 --> S_ERROR: PBFD14 - Refinement Exhausted
+    %% =========================
+    %% Completion Phase
+    %% =========================
+    state S6: S6 — Top-Down Completion (Level 1–5 collapsed)
 
-    S4 --> S6: PBFD10 - Begin Completion
+    S6 --> S6: PBFD11 — finalize next level (iterative)
+    S6 --> T: PBFD12 — successful termination
+    S6 --> S_ERROR: PBFD15 — completion failure
 
-    state S6: Finalize Level 1\n(ContinentGrandparent)
-    state S7: Finalize Level 2\n(ContinentParent)
-    state S8: Finalize Level 3\n(Continent)
-    state S9: Finalize Level 4\n(Country)
-    state S10: Finalize Level 5\n(State)
-
-    S6 --> S7: PBFD11 - Level 1 Finalized
-    S7 --> S8: PBFD11 - Level 2 Finalized
-    S8 --> S9: PBFD11 - Level 3 Finalized
-    S9 --> S10: PBFD11 - Level 4 Finalized
-    S10 --> T: PBFD12 - Level 5 Finalized
-
-    S6 --> S_ERROR: PBFD15 - Completion Failed
-    S7 --> S_ERROR: PBFD15 - Completion Failed
-    S8 --> S_ERROR: PBFD15 - Completion Failed
-    S9 --> S_ERROR: PBFD15 - Completion Failed
-    S10 --> S_ERROR: PBFD15 - Completion Failed
-
-    state T: Success\n(All nodes finalized)
-    state S_ERROR: Failure\n(Refinement exhausted / unrecoverable)
-
+    %% =========================
+    %% Terminals
+    %% =========================
+    state T: Success — all nodes finalized (∀n∈V: P(n)=2)
     T --> [*]
+
+    state S_ERROR: Failure Termination
     S_ERROR --> [*]
