@@ -18,7 +18,7 @@ stateDiagram-v2
 
     S3 --> S1 : DA5 / enqueue v_new_param
 
-    S1 --> T : DA6a [queue = <> and all initial nodes processed] / final validation, terminate successfully
+    S1 --> T : DA6a [all initial nodes processed] / final validation, terminate successfully
     S1 --> T : DA6b [queue = <> and unprocessed initial nodes remain] / terminate with error
 
     T --> [*]
