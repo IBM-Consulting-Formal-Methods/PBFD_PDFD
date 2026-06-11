@@ -1,17 +1,38 @@
-graph TD
-    A["Coordination Crisis in<br/>Full-Stack Development"] --> B["Foundational Layer:<br/>Graph Traversal Semantics<br/>(DAD, DFD, BFD, CDD)"]
-    
-    B --> C["Methodology Synthesis:<br/>PBFD & PDFD"]
-    
-    C --> D["Technical Implementation:<br/>TLE Data Layer"]
-    
-    D --> E{"Dual Validation"}
-    E --> F["Empirical Validation<br/>8-Year Data Study & MVPs"]
-    E --> G["Formal Verification<br/>CSP/LTL & Formal Theorems"]
-    
-    style A fill:#ffebee,stroke:#c62828,stroke-width:2px
-    style B fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style C fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style G fill:#e0f2f1,stroke:#00695c,stroke-width:2px
+graph TB
+
+    %% --- Styling ---
+    classDef foundation fill:#E1F5FE,stroke:#01579B,stroke-width:2px,color:#000;
+    classDef methodology fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px,color:#000;
+    classDef implementation fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#000;
+    classDef validation fill:#FFFDE7,stroke:#F57F17,stroke-width:2px,color:#000;
+
+    %% --- Research Foundation ---
+    A["Coordination Crisis in<br/>Full-Stack Development"]:::foundation
+
+    B["Foundational Models<br/>DAD, DFD, BFD, CDD"]:::foundation
+
+    A --> B
+
+    %% --- Methodology Synthesis ---
+    C["Methodology Synthesis<br/>PDFD & PBFD"]:::methodology
+
+    B --> C
+
+    %% --- Implementation Layer ---
+    D["Three-Level Encapsulation (TLE)<br/>Hierarchical Encoding Layer"]:::implementation
+
+    C --> D
+
+    %% --- Validation Tracks ---
+    E["Formal Verification<br/>State Machines, LTL,<br/>CSP/FDR4, Theorems"]:::validation
+
+    F["Empirical Validation<br/>MVP Studies"]:::validation
+
+    G["Longitudinal Enterprise Study<br/>PBFD + TLE (2016–2024)"]:::validation
+
+    C --> E
+    C --> F
+
+    D --> E
+    D --> F
+    D --> G
