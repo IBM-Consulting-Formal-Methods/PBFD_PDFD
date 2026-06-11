@@ -1,58 +1,80 @@
-graph TD
-    %% --- Definitions and Styling ---
+graph TB
+    %% --- Custom Styling Blocks ---
     classDef foundation fill:#E1F5FE,stroke:#01579B,stroke-width:2px,color:#000;
-    classDef proposedPBFD fill:#E3F2FD,stroke:#0D47A1,stroke-width:4px,color:#0D47A1;
-    classDef proposedPDFD fill:#E8F5E9,stroke:#1B5E20,stroke-width:4px,color:#1B5E20;
+    classDef proposedPBFD fill:#E3F2FD,stroke:#0D47A1,stroke-width:3px,color:#0D47A1;
+    classDef proposedPDFD fill:#E8F5E9,stroke:#1B5E20,stroke-width:3px,color:#1B5E20;
     classDef component fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#000;
     classDef validation fill:#FFFDE7,stroke:#F57F17,stroke-width:2px,color:#000;
-    classDef formal fill:#FAFAFA,stroke:#B71C1C,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef formal fill:#FAFAFA,stroke:#B71C1C,stroke-width:2px,stroke-dasharray:5 5;
 
-    %% --- Level 1 & 2: Theoretical Roots ---
-    L1[Coordination Crisis in Full-Stack Development]:::foundation
-    L1 --> DAD[DAD]:::foundation
-    L1 --> CDD[CDD]:::foundation
+    %% --- Root Foundations ---
+    L1[Coordination Crisis in<br/>Full-Stack Development]:::foundation
 
-    %% --- Level 3: Intermediate Models ---
-    DAD --> BFD[BFD]:::foundation
-    DAD --> DFD[DFD]:::foundation
+    subgraph Baseline["Foundational Models"]
+        direction LR
+        DAD[DAD]:::foundation
+        CDD[CDD]:::foundation
+        BFD[BFD]:::foundation
+        DFD[DFD]:::foundation
+    end
 
-    %% --- Level 4: Core Methodologies (Strategy) ---
-    DFD == "Primary" ==> PDFD[PDFD<br/>Primary Depth-First]:::proposedPDFD
+    L1 --> DAD
+    L1 --> CDD
+
+    DAD --> BFD
+    DAD --> DFD
+
+    %% --- Methodology Synthesis ---
+    PDFD[PDFD]:::proposedPDFD
+    PBFD[PBFD]:::proposedPBFD
+    TLE[TLE]:::component
+
+    DFD == "Primary" ==> PDFD
     BFD --> PDFD
     CDD --> PDFD
 
-    BFD == "Primary" ==> PBFD[PBFD<br/>Primary Breadth-First]:::proposedPBFD
+    BFD == "Primary" ==> PBFD
     DFD --> PBFD
     CDD --> PBFD
 
-    %% --- Level 5: Implementation Pattern (Data Layer) ---
-    PBFD -- "Data Layer Pattern" --> TLE[TLE<br/>Three-Level Encapsulation]:::component
+    PBFD -- "Data Layer Pattern" --> TLE
 
-    %% --- Level 6: Empirical Validation ---
-    subgraph EVW [EMPIRICAL VALIDATION]
-        direction LR
-        PdMVP[PDFD MVP]:::validation
-        PMVP[PBFD MVP<br/>- TLE Integrated]:::validation
-        PED["Longitudinal Enterprise Study<br/>2016–2024 Data Window"]:::validation
-        PMVP --> PED
-    end
-    
-    %% SOLID LINKS
-    PDFD --> PdMVP
-    PBFD --> PMVP
-
-    %% --- Level 7: Formal Verification Workflow ---
-    subgraph FVW [FORMAL VERIFICATION]
+    %% --- Empirical Validation ---
+    subgraph EVW["EMPIRICAL VALIDATION"]
         direction TB
-        TDL["Theoretical Deduction Layer: State Machine Semantics with LTL & TLE Theorems"]:::formal
-        AVL["Automated Verification Layer: CSP Models checked via FDR4 Checker"]:::formal
-        TDL --- AVL
+
+        PdMVP[PDFD MVP]:::validation
+
+        PMVP[PBFD MVP<br/>TLE Integrated]:::validation
+
+        PED["Longitudinal Enterprise Deployment<br/>PBFD + TLE (2016–2024)"]:::validation
     end
 
-    %% Coverage Connections
-    DAD & CDD & BFD & DFD -.-> FVW
-    PDFD & PBFD & TLE -.-> FVW
+    PDFD --> PdMVP
 
-    %% Styling Primary Links
-    linkStyle 4 stroke:#1B5E20,stroke-width:4px;
-    linkStyle 7 stroke:#0D47A1,stroke-width:4px;
+    PBFD --> PMVP
+    TLE --> PMVP
+
+    PBFD --> PED
+    TLE --> PED
+
+    %% --- Formal Verification ---
+    subgraph FVW["FORMAL VERIFICATION"]
+        direction TB
+
+        MethodologyLayer["State Machines, LTL Specifications,<br/>and Formal Correctness Proofs<br/>(DAD, DFD, BFD, CDD, PDFD, PBFD)"]:::formal
+
+        TLELayer["TLE State Machine,<br/>Complexity Theorems (A.10.1–A.10.4),<br/>and Formal Verification"]:::formal
+
+        AVL["Automated Verification Execution<br/>(CSP Models via FDR4)"]:::formal
+
+        MethodologyLayer --- AVL
+        TLELayer --- AVL
+    end
+
+    %% --- Verification Coverage ---
+    Baseline -.-> MethodologyLayer
+    PDFD -.-> MethodologyLayer
+    PBFD -.-> MethodologyLayer
+
+    TLE -.-> TLELayer
