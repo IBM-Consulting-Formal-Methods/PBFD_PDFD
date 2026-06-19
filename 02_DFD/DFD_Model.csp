@@ -16,6 +16,7 @@
 --   DF2–DF3: S1 (non-leaf / leaf)
 --   DF4–DF5: S2 (sibling selection / validation)
 --   DF6–DF7: S3 (backtrack / root termination)
+--   DF8: S1(empty stack) → T
 
 -- === Domain Declarations ===
 datatype NodeID = Node.{0..7}  -- Example finite tree domain
@@ -132,8 +133,8 @@ S0 =
   initialize_stack_actual!c_root ->          -- DF1: push root
   S1(<c_root>, {})                           -- Enter S1 with initial stack
 
--- === S1: Vertical Processing (DF2, DF3) ===
--- S1(<>, processed): empty stack → implicit termination (not a rule)
+-- === S1: Vertical Processing (DF2, DF3, DF8) ===
+-- S1(<>, processed): empty stack termination (DF8)
 -- S1(<c>^rest, processed): process top-of-stack node c
 S1(<>, processed) = 
   stack_is_empty ->                           -- Empty stack detected
