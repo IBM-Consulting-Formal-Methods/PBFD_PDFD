@@ -1,5 +1,5 @@
--- A.9.4 TLE Process Algebra (CSPM for FDR 4.2.7)
--- Aligned with Table 49 (Abstract States) and Table 50 (Formal Transitions)
+-- A.9.5 TLE Process Algebra (CSPM for FDR 4.2.7)
+-- Aligned with Table A.9.1 (Abstract States) and Table A.9.2 (Formal Transitions)
 -- Fully parameterized version ensuring unit-specific determinism
 -- Improved version addressing semantic feedback
 ------------------------------------------------------------
@@ -27,33 +27,36 @@ channel finalize_process : UNIT
 ------------------------------------------------------------
 
 -- S0: Idle
--- Table 49: TLE structure at rest; no unit loaded
--- Table 50:
---   TLE1: [*]  --start-->        S0
+-- Table A.9.1: TLE structure at rest; no unit loaded
+-- Table A.9.2:
 --   TLE2: S0   --load?u-->       S1(u)
 --   TLE11: S0  --no_next_unit?u-> S6(u)
+--
+-- Note:
+--   TLE1 (start -> S0) is implemented in TLE_Process.
+
 TLE_S0 =
     (load?u:UNIT -> TLE_S1(u))
   []
     (no_next_unit?u:UNIT -> TLE_S6(u))
 
 -- S1(u): Data Loaded
--- Table 49: Grandparent row for unit u loaded
--- Table 50:
+-- Table A.9.1: Grandparent row for unit u loaded
+-- Table A.9.2:
 --   TLE3: S1(u) --hierarchy_resolved.u--> S2(u)
 TLE_S1(u) =
     hierarchy_resolved.u -> TLE_S2(u)
 
 -- S2(u): Hierarchy Resolved
--- Table 49: Parent–child levels validated for unit u
--- Table 50:
+-- Table A.9.1: Parent–child levels validated for unit u
+-- Table A.9.2:
 --   TLE4: S2(u) --children_evaluated.u--> S3(u)
 TLE_S2(u) =
     children_evaluated.u -> TLE_S3(u)
 
 -- S3(u): Children Evaluated
--- Table 49: Child states processed for unit u
--- Table 50:
+-- Table A.9.1: Child states processed for unit u
+-- Table A.9.2:
 --   TLE5: S3(u) --children_updated.u--> S4(u)
 --   TLE6: S3(u) --skip_update.u-->     S5(u)
 TLE_S3(u) =
@@ -62,15 +65,15 @@ TLE_S3(u) =
     (skip_update.u -> TLE_S5(u))
 
 -- S4(u): Children Updated
--- Table 49: Bitmask/state updates applied for unit u
--- Table 50:
+-- Table A.9.1: Bitmask/state updates applied for unit u
+-- Table A.9.2:
 --   TLE7: S4(u) --changes_committed.u--> S5(u)
 TLE_S4(u) =
     changes_committed.u -> TLE_S5(u)
 
 -- S5(u): Changes Committed
--- Table 49: Modifications persisted for unit u
--- Table 50:
+-- Table A.9.1: Modifications persisted for unit u
+-- Table A.9.2:
 --   TLE8: S5(u) --has_next_unit-->  S0
 --   TLE9: S5(u) --no_next_unit.u--> S6(u)
 -- Note: has_next_unit is valueless – signals readiness, not data transfer
@@ -80,14 +83,14 @@ TLE_S5(u) =
     (no_next_unit.u -> TLE_S6(u))
 
 -- S6(u): Workflow Finalized
--- Table 49: Unit u complete; ready to finalize/return to idle
--- Table 50:
+-- Table A.9.1: Unit u complete; ready to finalize/return to idle
+-- Table A.9.2:
 --   TLE10: S6(u) --finalize_process.u--> S0
 TLE_S6(u) =
     finalize_process.u -> TLE_S0
 
 -- Top-level entry
--- Table 50: TLE1 covers start -> S0
+-- Table A.9.2: TLE1 covers start -> S0
 TLE_Process = start -> TLE_S0
 
 ------------------------------------------------------------
@@ -128,7 +131,7 @@ TLE_Abstract_Process = start -> TLE_Abstract_S0
 ------------------------------------------------------------
 
 -- Environment that can supply any sequence of parameterized events
--- (Covers all channels in Alpha_TLE used in Table 50)
+-- (Covers all channels in Alpha_TLE used in Table A.9.2)
 TLE_HostileEnv = 
     (load?u:UNIT -> TLE_HostileEnv)
   [] (hierarchy_resolved?u:UNIT -> TLE_HostileEnv)
@@ -171,7 +174,7 @@ assert TLE_Process [FD= TLE_Abstract_Process
 assert TLE_Process :[divergence free]
 assert TLE_Abstract_Process :[divergence free]
 
--- 6. Individual state deadlock freedom (validates each state in Table 49)
+-- 6. Individual state deadlock freedom (validates each state in Table A.9.1)
 assert TLE_S0 :[deadlock free]
 assert TLE_S1(u1) :[deadlock free]
 assert TLE_S2(u1) :[deadlock free]
@@ -271,14 +274,14 @@ assert TLE_Process :[deterministic [F]]
 -- 2. has_next_unit is VALUE-LESS: it signals readiness for the next
 --    unit but does not transfer data. The next unit comes via load
 --    from the environment. This matches the semantic that S5 -> S0
---    returns to idle state awaiting new work (Table 49, S0/S5).
+--    returns to idle state awaiting new work (Table A.9.1, S0/S5).
 --
 -- 3. S6 is parameterized to maintain traceability of which unit
---    is being finalized via finalize_process.u (Table 49, S6).
+--    is being finalized via finalize_process.u (Table A.9.1, S6).
 --
 -- 4. The hostile environment can supply events in any order,
 --    testing robustness of the state machine under adversarial
---    conditions (consistent with Table 50’s event alphabet).
+--    conditions (consistent with Table A.9.2’s event alphabet).
 --
 -- ============================================================
 -- ASSERTION SUMMARY
