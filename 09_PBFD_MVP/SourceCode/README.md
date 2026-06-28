@@ -1,8 +1,6 @@
 # VisitorLog_PBFD
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17807586.svg)](https://doi.org/10.5281/zenodo.17807586)
-
-This repository contains the source code for a Minimum Viable Product (MVP) developed to support the research paper, **"Formally and Empirically Verified Methodologies for Scalable Hierarchical Full-Stack Systems."**
+This repository contains the source code for a Minimum Viable Product (MVP) developed to support the research paper, **"Traversal-Governed Full-Stack Development for Hierarchical Systems: Formal Semantics, Verification, and Longitudinal Evaluation."**
 
 This is an ASP.NET MVC application that allows users to log their visits to all continents in the world. This application serves as a demonstration of the **Primary Breadth-First Development (PBFD)** methodology.
 
@@ -21,11 +19,16 @@ To build and run this application, you will need the following development envir
 
 Follow these steps to get the application up and running on your local machine.
 
-### 1. Clone the Repository
-Clone this repository to your local machine using Git:
-```bash
-git clone https://github.com/PBFD-MVP/PBFD-MVP.git
-```
+### 1. Download the PBFD MVP Source Code
+1. Go to:
+   https://download-directory.github.io/
+
+2. Paste this URL:
+   https://github.com/IBM-Consulting-Formal-Methods/PBFD_PDFD/tree/main/09_PBFD_MVP/SourceCode
+
+3. Click **Download**
+
+4. Extract the downloaded ZIP file
 
 ### 2. Open the Solution
 Open the `VisitorLog_PBFD.sln` solution file in Visual Studio 2022. The necessary NuGet packages should be restored automatically. If not, rebuild the solution to trigger the package restore.
