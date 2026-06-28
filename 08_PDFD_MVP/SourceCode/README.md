@@ -19,9 +19,17 @@ To run this application, you'll need the following tools installed:
 
 Follow these steps to get the application up and running on your local machine.
 
-### 1. Download the Source Code
+### 1. Download the PDFD MVP Source Code
 
-Click **Code → Download ZIP**, then extract it.
+1. Go to:
+   https://download-directory.github.io/
+
+2. Paste this URL:
+   https://github.com/IBM-Consulting-Formal-Methods/PBFD_PDFD/tree/main/08_PDFD_MVP/SourceCode
+
+3. Click **Download**
+
+4. Extract the downloaded ZIP file
 
 ### 2. Open the Solution
 Open the `VisitorLog_PDFD.sln` solution file in Visual Studio 2022. The necessary NuGet packages should be restored automatically. If not, rebuild the solution to trigger the package restore.
