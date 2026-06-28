@@ -1,8 +1,6 @@
 # VisitorLog_PDFD
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17807586.svg)](https://doi.org/10.5281/zenodo.17807586)
-
-This repository contains the source code for a Minimum Viable Product (MVP) developed to support the research paper, **"Formally and Empirically Verified Methodologies for Scalable Hierarchical Full-Stack Systems"**
+This repository contains the source code for a Minimum Viable Product (MVP) developed to support the research paper, **"Traversal-Governed Full-Stack Development for Hierarchical Systems: Formal Semantics, Verification, and Longitudinal Evaluation"**
 
 This is an ASP.NET MVC web application that allows users to log and track their visits to different continents around the world. The application is built using the **Primary Depth-First Development (PDFD)** methodology.
 
@@ -24,7 +22,7 @@ Follow these steps to get the application up and running on your local machine.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/PDFD-MVP/PDFD-MVP.git
+git clone https://github.com/PBFD_PDFD/08_PDFD-MVP.git
 ```
 
 ### 2. Open the Solution
